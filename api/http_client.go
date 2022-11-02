@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 
 	"github.com/databendcloud/bendsql/api/apierrors"
@@ -37,13 +38,15 @@ type APIClient struct {
 }
 
 const (
-	accept             = "Accept"
-	authorization      = "Authorization"
-	contentType        = "Content-Type"
-	jsonContentType    = "application/json; charset=utf-8"
-	timeZone           = "Time-Zone"
-	userAgent          = "User-Agent"
-	defaultApiEndpoint = "https://app.databend.com"
+	accept          = "Accept"
+	authorization   = "Authorization"
+	contentType     = "Content-Type"
+	jsonContentType = "application/json; charset=utf-8"
+	timeZone        = "Time-Zone"
+	userAgent       = "User-Agent"
+
+	EndpointGlobal = "https://app.databend.com"
+	EndpointCN     = "https://app.databend.cn"
 )
 
 func NewApiClient() *APIClient {
@@ -68,7 +71,7 @@ func (c *APIClient) DoRequest(method, path string, headers http.Header, req inte
 		}
 	}
 
-	url := c.makeURL(path)
+	url := c.makeURL(path, nil)
 	httpReq, err := http.NewRequest(method, url, bytes.NewBuffer(reqBody))
 	if err != nil {
 		return err
@@ -112,14 +115,25 @@ func (c *APIClient) DoRequest(method, path string, headers http.Header, req inte
 	return nil
 }
 
-func (c *APIClient) makeURL(path string, args ...interface{}) string {
+func (c *APIClient) makeURL(path string, args map[string]string) string {
 	apiEndpoint := os.Getenv("BENDSQL_API_ENDPOINT")
 	if apiEndpoint == "" {
 		apiEndpoint = c.Endpoint
 	}
 	if apiEndpoint == "" {
-		apiEndpoint = defaultApiEndpoint
+		apiEndpoint = EndpointGlobal
 	}
-	format := apiEndpoint + path
-	return fmt.Sprintf(format, args...)
+	u := &url.URL{
+		Scheme: "https",
+		Host:   apiEndpoint,
+		Path:   path,
+	}
+	if args != nil {
+		q := u.Query()
+		for k, v := range args {
+			q.Add(k, v)
+		}
+		u.RawQuery = q.Encode()
+	}
+	return u.String()
 }
