@@ -19,6 +19,7 @@ import (
 	authCmd "github.com/databendcloud/bendsql/pkg/cmd/auth"
 	completionCmd "github.com/databendcloud/bendsql/pkg/cmd/completion"
 	queryCmd "github.com/databendcloud/bendsql/pkg/cmd/query"
+	shellCmd "github.com/databendcloud/bendsql/pkg/cmd/shell"
 	stageCmd "github.com/databendcloud/bendsql/pkg/cmd/stage"
 	versionCmd "github.com/databendcloud/bendsql/pkg/cmd/version"
 	warehouseCmd "github.com/databendcloud/bendsql/pkg/cmd/warehouse"
@@ -66,5 +67,6 @@ func NewCmdRoot(f *cmdutil.Factory, version, buildDate string) *cobra.Command {
 	cmd.AddCommand(warehouseCmd.NewWarehouseCmd(f))
 	cmd.AddCommand(stageCmd.NewCmdStage(f))
 	cmd.AddCommand(queryCmd.NewCmdQuerySQL(f))
+	cmd.AddCommand(shellCmd.NewCmdShell(f))
 	return cmd
 }

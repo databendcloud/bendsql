@@ -20,14 +20,17 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/avast/retry-go"
+
 	"github.com/databendcloud/bendsql/api/apierrors"
 	"github.com/databendcloud/bendsql/internal/config"
+	dc "github.com/databendcloud/databend-go"
 )
 
 func (c *APIClient) Login() error {
@@ -336,6 +339,25 @@ func (c *APIClient) QueryPage(warehouseName, queryId, path string) (*QueryRespon
 		return nil, err
 	}
 	return &result, nil
+}
+
+func (c *APIClient) GetCloudDSN() (dsn string, err error) {
+	u, err := url.Parse(c.Endpoint)
+	if err != nil {
+		return
+	}
+	cfg := dc.NewConfig()
+	cfg.Host = u.Host
+	cfg.Scheme = u.Scheme
+	cfg.Warehouse = c.CurrentWarehouse
+	cfg.Org = c.CurrentOrgSlug
+	cfg.User = c.UserEmail
+	cfg.Password = c.Password
+	cfg.AccessToken = c.AccessToken
+	cfg.RefreshToken = c.RefreshToken
+
+	dsn = cfg.FormatDSN()
+	return
 }
 
 type WarehouseStatusDTO struct {
