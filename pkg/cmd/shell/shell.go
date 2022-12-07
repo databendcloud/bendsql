@@ -15,11 +15,16 @@
 package shell
 
 import (
-	"os/exec"
-	"syscall"
+	"context"
+	"os"
+	"os/user"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/xo/usql/drivers"
+	"github.com/xo/usql/env"
+	"github.com/xo/usql/handler"
+	"github.com/xo/usql/rline"
 
 	"github.com/databendcloud/bendsql/pkg/cmdutil"
 )
@@ -38,12 +43,42 @@ func NewCmdShell(f *cmdutil.Factory) *cobra.Command {
 			if err != nil {
 				return errors.Wrap(err, "failed to get cloud dsn")
 			}
-			usqlPath, err := exec.LookPath("usql")
+
+			// register databend driver
+			drivers.Register("databend", drivers.Driver{
+				UseColumnTypes: true,
+			})
+
+			// load current user
+			cur, err := user.Current()
 			if err != nil {
-				return errors.Wrap(err, "failed to find usql in PATH")
+				return errors.Wrap(err, "failed to get current user")
+			}
+			wd, err := os.Getwd()
+			if err != nil {
+				return errors.Wrap(err, "failed to get current working directory")
 			}
 
-			return syscall.Exec(usqlPath, []string{"usql", dsn}, nil)
+			// create input/output
+			l, err := rline.New(false, "", env.HistoryFile(cur))
+			if err != nil {
+				return errors.Wrap(err, "failed to create readline")
+			}
+			defer l.Close()
+			// create handler
+			h := handler.New(l, cur, wd, true)
+			// open dsn
+			if err = h.Open(context.Background(), dsn); err != nil {
+				return errors.Wrap(err, "failed to open dsn")
+			}
+			return h.Run()
+
+			// usqlPath, err := exec.LookPath("usql")
+			// if err != nil {
+			// 	return errors.Wrap(err, "failed to find usql in PATH")
+			// }
+			// // fmt.Println("running usql with dsn:", dsn)
+			// return syscall.Exec(usqlPath, []string{"usql", dsn}, nil)
 		},
 	}
 
