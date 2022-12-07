@@ -25,6 +25,7 @@ import (
 	"github.com/databendcloud/bendsql/pkg/cmdutil"
 	"github.com/databendcloud/bendsql/pkg/iostreams"
 	"github.com/databendcloud/bendsql/pkg/prompt"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -165,25 +166,61 @@ func loginRun(opts *LoginOptions) error {
 		cfg.UserEmail = currentAccountInfo.Email
 	}
 
-	if opts.Org == "" {
-		err = prompt.SurveyAskOne(&survey.Input{
-			Message: "Paste your org slug:",
-			Default: currentAccountInfo.DefaultOrgSlug,
-		}, &opts.Org, survey.WithValidator(survey.Required))
-		if err != nil {
-			return fmt.Errorf("could not prompt: %w", err)
+	orgDtos, err := apiClient.ListOrgs()
+	if err != nil {
+		return errors.Wrap(err, "list orgs failed")
+	}
+
+	var currentOrg *api.OrgMembershipDTO
+
+	switch len(orgDtos) {
+	case 0:
+		return fmt.Errorf("no orgs found, please create one first")
+	case 1:
+		currentOrg = &orgDtos[0]
+	default:
+		if opts.Org == "" {
+			var orgs []string
+			for i := range orgDtos {
+				orgs = append(orgs, orgDtos[i].OrgSlug)
+			}
+			err = prompt.SurveyAskOne(
+				&survey.Select{
+					Message: "Select your working org:",
+					Options: orgs,
+					Default: orgs[0],
+					Description: func(value string, index int) string {
+						return orgDtos[index].OrgName
+					},
+				}, &opts.Org, survey.WithValidator(survey.Required))
+			if err != nil {
+				return errors.Wrap(err, "could not prompt")
+			}
+		}
+		for _, org := range orgDtos {
+			if org.OrgSlug == opts.Org {
+				currentOrg = &org
+				break
+			}
 		}
 	}
-	apiClient.CurrentOrgSlug = opts.Org
+
+	if currentOrg == nil {
+		return fmt.Errorf("org %s not found", opts.Org)
+	}
+	apiClient.CurrentOrgSlug = currentOrg.OrgSlug
+	cfg.Org = currentOrg.OrgSlug
+	cfg.Gateway = currentOrg.Gateway
 
 	warehouses, err := apiClient.ListWarehouses()
 	if err != nil || len(warehouses) == 0 {
 		logrus.Warnf("you have no warehouse in %s", cfg.Org)
 	} else {
+		logrus.Infof("setting current warehouse to %s", warehouses[0].Name)
+		logrus.Info("run `bendsql configure` to change")
 		cfg.Warehouse = warehouses[0].Name
 	}
 
-	cfg.Org = apiClient.CurrentOrgSlug
 	cfg.AccessToken = apiClient.AccessToken
 	cfg.RefreshToken = apiClient.RefreshToken
 	cfg.Endpoint = apiClient.Endpoint

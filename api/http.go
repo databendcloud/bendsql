@@ -16,19 +16,17 @@ package api
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/avast/retry-go"
+	"github.com/pkg/errors"
 
-	"github.com/databendcloud/bendsql/api/apierrors"
 	"github.com/databendcloud/bendsql/internal/config"
 	dc "github.com/databendcloud/databend-go"
 )
@@ -49,8 +47,8 @@ func (c *APIClient) Login() error {
 		} `json:"data,omitempty"`
 	}{}
 	err := c.DoRequest("POST", path, nil, &req, &reply)
-	var apiErr apierrors.APIError
-	if errors.As(err, &apiErr) && apierrors.IsAuthFailed(err) {
+	var apiErr dc.APIError
+	if errors.As(err, &apiErr) && dc.IsAuthFailed(err) {
 		apiErr.Hint = "" // shows the server replied message if auth Err
 		return apiErr
 	} else if err != nil {
@@ -76,8 +74,8 @@ func (c *APIClient) GetCurrentAccountInfo() (*AccountInfoDTO, error) {
 	return &resp.Data, nil
 }
 
-func (c *APIClient) ListOrgs() ([]string, error) {
-	var orgs []string
+func (c *APIClient) ListOrgs() ([]OrgMembershipDTO, error) {
+	var orgs []OrgMembershipDTO
 	resp := struct {
 		Data []OrgMembershipDTO `json:"data"`
 	}{}
@@ -87,7 +85,7 @@ func (c *APIClient) ListOrgs() ([]string, error) {
 		return nil, fmt.Errorf("failed to list orgs: %w, %#v", err, &resp)
 	}
 	for i := range resp.Data {
-		orgs = append(orgs, resp.Data[i].OrgSlug)
+		orgs = append(orgs, resp.Data[i])
 	}
 	return orgs, nil
 }
@@ -285,7 +283,7 @@ func (c *APIClient) QuerySync(warehouseName string, sql string, respCh chan Quer
 		},
 		// other err no need to retry
 		retry.RetryIf(func(err error) bool {
-			if err != nil && !(apierrors.IsProxyErr(err) || strings.Contains(err.Error(), apierrors.ProvisionWarehouseTimeout)) {
+			if err != nil && !(dc.IsProxyErr(err) || strings.Contains(err.Error(), dc.ProvisionWarehouseTimeout)) {
 				return false
 			}
 			return true
@@ -342,19 +340,14 @@ func (c *APIClient) QueryPage(warehouseName, queryId, path string) (*QueryRespon
 }
 
 func (c *APIClient) GetCloudDSN() (dsn string, err error) {
-	u, err := url.Parse(c.Endpoint)
-	if err != nil {
-		return
-	}
 	cfg := dc.NewConfig()
-	cfg.Host = u.Host
-	cfg.Scheme = u.Scheme
+	if strings.HasPrefix(c.Endpoint, "http://") {
+		cfg.SSLMode = "disable"
+	}
+	cfg.Host = config.GetGateway()
+	cfg.Tenant = config.GetTenant()
 	cfg.Warehouse = c.CurrentWarehouse
-	cfg.Org = c.CurrentOrgSlug
-	cfg.User = c.UserEmail
-	cfg.Password = c.Password
 	cfg.AccessToken = c.AccessToken
-	cfg.RefreshToken = c.RefreshToken
 
 	dsn = cfg.FormatDSN()
 	return
@@ -366,6 +359,10 @@ type WarehouseStatusDTO struct {
 	Size           string `json:"size,omitempty"`
 	State          string `json:"state,omitempty"`
 	TotalInstances int64  `json:"totalInstances,omitempty"`
+}
+
+func (w WarehouseStatusDTO) String() string {
+	return fmt.Sprintf("%s(%s):%s", w.Name, w.Size, w.State)
 }
 
 type AccountInfoDTO struct {
@@ -430,10 +427,15 @@ type OrgMembershipDTO struct {
 	OrgTenantID      string      `json:"tenantID"`
 	Region           string      `json:"region"`
 	Provider         string      `json:"provider"`
+	Gateway          string      `json:"gateway"`
 	MemberKind       MemberKind  `json:"memberKind"`
 	State            string      `json:"state"`
 	UpdatedAt        time.Time   `json:"updatedAt"`
 	CreatedAt        time.Time   `json:"createdAt"`
+}
+
+func (o OrgMembershipDTO) String() string {
+	return fmt.Sprintf("(%s)[%s]%s@%s:%s", o.OrgState, o.OrgName, o.OrgSlug, o.Provider, o.Region)
 }
 
 type OrgMemberID uint64

@@ -23,8 +23,9 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/databendcloud/bendsql/api/apierrors"
 	"github.com/databendcloud/bendsql/internal/config"
+	dc "github.com/databendcloud/databend-go"
+	"github.com/pkg/errors"
 )
 
 type APIClient struct {
@@ -49,15 +50,19 @@ const (
 	EndpointCN     = "https://app.databend.cn"
 )
 
-func NewApiClient() *APIClient {
-	accessToken, refreshToken := config.GetAuthToken()
-	return &APIClient{
+func NewApiClient() (*APIClient, error) {
+	accessToken, refreshToken, err := config.GetAuthToken()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get auth token")
+	}
+	client := &APIClient{
 		AccessToken:      accessToken,
 		RefreshToken:     refreshToken,
 		CurrentOrgSlug:   config.GetOrg(),
 		CurrentWarehouse: config.GetWarehouse(),
 		Endpoint:         config.GetEndpoint(),
 	}
+	return client, nil
 }
 
 func (c *APIClient) DoRequest(method, path string, headers http.Header, req interface{}, resp interface{}) error {
@@ -102,11 +107,11 @@ func (c *APIClient) DoRequest(method, path string, headers http.Header, req inte
 	}
 
 	if httpResp.StatusCode == http.StatusUnauthorized {
-		return apierrors.New("please use `bendsql auth login` to login your account.", httpResp.StatusCode, httpRespBody)
+		return dc.NewAPIError("please use `bendsql auth login` to login your account.", httpResp.StatusCode, httpRespBody)
 	} else if httpResp.StatusCode >= 500 {
-		return apierrors.New("please retry again later.", httpResp.StatusCode, httpRespBody)
+		return dc.NewAPIError("please retry again later.", httpResp.StatusCode, httpRespBody)
 	} else if httpResp.StatusCode >= 400 {
-		return apierrors.New("please check your arguments.", httpResp.StatusCode, httpRespBody)
+		return dc.NewAPIError("please check your arguments.", httpResp.StatusCode, httpRespBody)
 	}
 
 	if resp != nil {

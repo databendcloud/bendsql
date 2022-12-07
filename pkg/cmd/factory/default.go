@@ -46,13 +46,13 @@ func configFunc() func() (config.Configer, error) {
 		if cachedConfig != nil || configError != nil {
 			return cachedConfig, configError
 		}
-		cachedConfig, configError = config.NewConfig()
+		cachedConfig, configError = config.GetConfig()
 		return cachedConfig, configError
 	}
 }
 
 func httpClientFunc() func() (*api.APIClient, error) {
 	return func() (*api.APIClient, error) {
-		return api.NewApiClient(), nil
+		return api.NewApiClient()
 	}
 }

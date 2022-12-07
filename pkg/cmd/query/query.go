@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net/url"
 	"os"
 	"reflect"
 	"strings"
@@ -29,8 +28,9 @@ import (
 	"github.com/databendcloud/bendsql/internal/config"
 	"github.com/databendcloud/bendsql/pkg/cmdutil"
 	"github.com/databendcloud/bendsql/pkg/iostreams"
-	dc "github.com/databendcloud/databend-go"
 	"github.com/spf13/cobra"
+
+	_ "github.com/databendcloud/databend-go"
 )
 
 type querySQLOptions struct {
@@ -70,7 +70,7 @@ func NewCmdQuerySQL(f *cmdutil.Factory) *cobra.Command {
 			opts.QuerySQL = querySQL
 			opts.Verbose = verbose
 
-			cfg, err := config.NewConfig()
+			cfg, err := config.GetConfig()
 			if err != nil {
 				panic(err)
 			}
@@ -89,7 +89,7 @@ func NewCmdQuerySQL(f *cmdutil.Factory) *cobra.Command {
 
 			if warehouse == "" {
 				// TODO: check the warehouse whether in warehouse list
-				warehouse, err = cfg.Get(config.Warehouse)
+				warehouse, err = cfg.Get(config.KeyWarehouse)
 				if warehouse == "" || err != nil {
 					fmt.Printf("get default warehouse failed, please your default warehouse in $HOME/.config/bendsql/bendsql.ini")
 					os.Exit(1)
@@ -111,28 +111,11 @@ func NewCmdQuerySQL(f *cmdutil.Factory) *cobra.Command {
 }
 
 func newDatabendCloudDSN(opts *querySQLOptions) (string, error) {
-	var dsn string
 	apiClient, err := opts.ApiClient()
-	if err != nil {
-		return dsn, err
-	}
-	u, err := url.Parse(apiClient.Endpoint)
 	if err != nil {
 		return "", err
 	}
-	cfg := dc.NewConfig()
-	cfg.Host = u.Host
-	cfg.Scheme = u.Scheme
-	cfg.Warehouse = opts.Warehouse
-	cfg.Org = apiClient.CurrentOrgSlug
-	cfg.User = apiClient.UserEmail
-	cfg.Password = apiClient.Password
-	cfg.AccessToken = apiClient.AccessToken
-	cfg.RefreshToken = apiClient.RefreshToken
-	cfg.Debug = opts.Verbose
-
-	dsn = cfg.FormatDSN()
-	return dsn, nil
+	return apiClient.GetCloudDSN()
 }
 
 func execQueryByDriver(opts *querySQLOptions) error {

@@ -60,14 +60,14 @@ func NewCmdStageUpload(f *cmdutil.Factory) *cobra.Command {
 			filePath := args[0]
 			stageName := args[1]
 
-			cfg, err := config.NewConfig()
+			cfg, err := config.GetConfig()
 			if err != nil {
 				panic(err)
 			}
 
 			if warehouse == "" {
 				// TODO: check the warehouse whether in warehouse list
-				warehouse, err = cfg.Get(config.Warehouse)
+				warehouse, err = cfg.Get(config.KeyWarehouse)
 				if warehouse == "" || err != nil {
 					fmt.Printf("--warehouse is required")
 					return

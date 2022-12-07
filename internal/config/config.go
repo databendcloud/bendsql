@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"gopkg.in/ini.v1"
@@ -30,12 +31,14 @@ var (
 )
 
 const (
-	UserEmail    string = "user_email"
-	AccessToken  string = "access_token"
-	RefreshToken string = "refresh_token"
-	Warehouse    string = "warehouse"
-	Org          string = "org"
-	Endpoint     string = "endpoint"
+	KeyUserEmail    string = "user_email"
+	KeyAccessToken  string = "access_token"
+	KeyRefreshToken string = "refresh_token"
+	KeyWarehouse    string = "warehouse"
+	KeyOrg          string = "org"
+	KeyTenant       string = "tenant"
+	KeyEndpoint     string = "endpoint"
+	KeyGateway      string = "gateway"
 )
 
 const (
@@ -48,17 +51,19 @@ type Config struct {
 	AccessToken  string `ini:"access_token"`
 	RefreshToken string `ini:"refresh_token"`
 	Warehouse    string `ini:"warehouse"`
+	Tenant       string `ini:"tenant"`
 	Org          string `ini:"org"`
+	Gateway      string `ini:"gateway"`
 	Endpoint     string `init:"endpoint"`
 }
 
 type Configer interface {
-	AuthToken() (string, string)
+	AuthToken() (string, string, error)
 	Get(string) (string, error)
 	Set(string, string) error
 }
 
-func NewConfig() (Configer, error) {
+func GetConfig() (Configer, error) {
 	c, err := Read()
 	if err != nil {
 		return nil, err
@@ -87,23 +92,28 @@ func (c *Config) Write() error {
 	}
 	cg := ini.Empty()
 	defaultSection := cg.Section("")
-	defaultSection.NewKey(AccessToken, c.AccessToken)
-	defaultSection.NewKey(RefreshToken, c.RefreshToken)
-	defaultSection.NewKey(Warehouse, c.Warehouse)
-	defaultSection.NewKey(Org, c.Org)
-	defaultSection.NewKey(UserEmail, c.UserEmail)
-	defaultSection.NewKey(Endpoint, c.Endpoint)
+	defaultSection.NewKey(KeyAccessToken, c.AccessToken)
+	defaultSection.NewKey(KeyRefreshToken, c.RefreshToken)
+	defaultSection.NewKey(KeyWarehouse, c.Warehouse)
+	defaultSection.NewKey(KeyOrg, c.Org)
+	defaultSection.NewKey(KeyTenant, c.Tenant)
+	defaultSection.NewKey(KeyUserEmail, c.UserEmail)
+	defaultSection.NewKey(KeyEndpoint, c.Endpoint)
+	defaultSection.NewKey(KeyGateway, c.Gateway)
 	return cg.SaveTo(filepath.Join(ConfigDir(), bendsqlCinfigFile))
 }
 
-func (c *Config) AuthToken() (string, string) {
-	accessToken, err := c.Get(AccessToken)
-	refreshToken, err := c.Get(RefreshToken)
+func (c *Config) AuthToken() (string, string, error) {
+	accessToken, err := c.Get(KeyAccessToken)
 	if err != nil {
-		panic(err)
+		return "", "", err
+	}
+	refreshToken, err := c.Get(KeyRefreshToken)
+	if err != nil {
+		return "", "", err
 	}
 
-	return accessToken, refreshToken
+	return accessToken, refreshToken, nil
 }
 
 // Get a string value from a ConfigFile.
@@ -140,14 +150,17 @@ func RenewTokens(accessToken, refreshToken string) error {
 	if !Exists(filepath.Join(ConfigDir(), bendsqlCinfigFile)) {
 		return os.ErrNotExist
 	}
-	cfg, err := NewConfig()
+	cfg, err := GetConfig()
 	if err != nil {
-		return fmt.Errorf("config failed: %w", err)
+		return errors.Wrap(err, "config failed")
 	}
-	err = cfg.Set(AccessToken, accessToken)
-	err = cfg.Set(RefreshToken, refreshToken)
+	err = cfg.Set(KeyAccessToken, accessToken)
 	if err != nil {
-		return fmt.Errorf("renew tokens failed %w", err)
+		return errors.Wrap(err, "set access token failed")
+	}
+	err = cfg.Set(KeyRefreshToken, refreshToken)
+	if err != nil {
+		return errors.Wrap(err, "set refresh token failed")
 	}
 	return nil
 }
@@ -156,95 +169,67 @@ func SetUsingWarehouse(warehouse string) error {
 	if !Exists(filepath.Join(ConfigDir(), bendsqlCinfigFile)) {
 		return os.ErrNotExist
 	}
-	cfg, err := NewConfig()
+	cfg, err := GetConfig()
 	if err != nil {
 		return fmt.Errorf("config failed: %w", err)
 	}
-	err = cfg.Set(Warehouse, warehouse)
+	err = cfg.Set(KeyWarehouse, warehouse)
 	if err != nil {
 		return fmt.Errorf("set warehouse failed %w", err)
 	}
 	return nil
 }
 
-func GetAuthToken() (string, string) {
+func GetAuthToken() (string, string, error) {
 	if !Exists(filepath.Join(ConfigDir(), bendsqlCinfigFile)) {
-		return "", ""
+		return "", "", os.ErrNotExist
 	}
-	cfg, err := NewConfig()
+	cfg, err := GetConfig()
 	if err != nil {
-		logrus.Errorf("read config failed %v", err)
-		return "", ""
+		return "", "", errors.Wrap(err, "read config failed")
 	}
 	return cfg.AuthToken()
 }
 
-func GetWarehouse() string {
+func getField(key string) string {
 	if !Exists(filepath.Join(ConfigDir(), bendsqlCinfigFile)) {
 		return ""
 	}
-	cfg, err := NewConfig()
+	cfg, err := GetConfig()
 	if err != nil {
 		logrus.Errorf("read config failed %v", err)
 		return ""
 	}
-	warehouse, err := cfg.Get(Warehouse)
+	value, err := cfg.Get(key)
 	if err != nil {
-		logrus.Errorf("get warehouse failed %v", err)
+		logrus.Errorf("get %s failed %v", key, err)
 		return ""
 	}
-	return warehouse
+	return value
+}
+
+func GetWarehouse() string {
+	return getField(KeyWarehouse)
 }
 
 func GetEndpoint() string {
-	if !Exists(filepath.Join(ConfigDir(), bendsqlCinfigFile)) {
-		return ""
-	}
-	cfg, err := NewConfig()
-	if err != nil {
-		logrus.Errorf("read config failed %v", err)
-		return ""
-	}
-	endpoint, err := cfg.Get(Endpoint)
-	if err != nil {
-		logrus.Errorf("get endpoint failed %v", err)
-		return ""
-	}
-	return endpoint
+	return getField(KeyEndpoint)
 }
 
 func GetUserEmail() string {
-	if !Exists(filepath.Join(ConfigDir(), bendsqlCinfigFile)) {
-		return ""
-	}
-	cfg, err := NewConfig()
-	if err != nil {
-		logrus.Errorf("read config failed %v", err)
-		return ""
-	}
-	userEmail, err := cfg.Get(UserEmail)
-	if err != nil {
-		logrus.Errorf("get userEmail failed %v", err)
-		return ""
-	}
-	return userEmail
+	return getField(KeyUserEmail)
 }
 
 func GetOrg() string {
-	if !Exists(filepath.Join(ConfigDir(), bendsqlCinfigFile)) {
-		return ""
-	}
-	cfg, err := NewConfig()
-	if err != nil {
-		logrus.Errorf("read config failed %v", err)
-		return ""
-	}
-	warehouse, err := cfg.Get(Org)
-	if err != nil {
-		logrus.Errorf("get org failed %v", err)
-		return ""
-	}
-	return warehouse
+	return getField(KeyOrg)
+}
+
+func GetTenant() string {
+	return getField(KeyTenant)
+}
+
+func GetGateway() string {
+	return getField(KeyGateway)
 }
 
 func ConfigDir() string {

@@ -15,14 +15,13 @@
 package shell
 
 import (
-	"context"
-	"os/user"
+	"os/exec"
+	"syscall"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/xo/usql/rline"
 
 	"github.com/databendcloud/bendsql/pkg/cmdutil"
-	"github.com/databendcloud/bendsql/pkg/shell"
 )
 
 func NewCmdShell(f *cmdutil.Factory) *cobra.Command {
@@ -30,35 +29,21 @@ func NewCmdShell(f *cmdutil.Factory) *cobra.Command {
 		Use:   "shell",
 		Short: "Enter interactive sql shell",
 		Long:  "Enter interactive sql shell",
-		Run: func(cmd *cobra.Command, args []string) {
-			cur, err := user.Current()
-			if err != nil {
-				panic(err)
-			}
+		RunE: func(cmd *cobra.Command, args []string) error {
 			apiClient, err := f.ApiClient()
 			if err != nil {
-				panic(err)
+				return errors.Wrap(err, "failed to create api client")
 			}
-
-			// create input/output
-			l, err := rline.New(false, "", "")
+			dsn, err := apiClient.GetCloudDSN()
 			if err != nil {
-				panic(err)
+				return errors.Wrap(err, "failed to get cloud dsn")
 			}
-			defer l.Close()
-
-			// create handler
-			h := shell.NewHandler(l, cur, apiClient)
-
-			// open dsn
-			if err = h.Open(context.Background()); err != nil {
-				panic(err)
-			}
-			err = h.Run()
+			usqlPath, err := exec.LookPath("usql")
 			if err != nil {
-				panic(err)
+				return errors.Wrap(err, "failed to find usql in PATH")
 			}
 
+			return syscall.Exec(usqlPath, []string{"usql", dsn}, nil)
 		},
 	}
 
