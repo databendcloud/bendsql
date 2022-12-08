@@ -40,17 +40,6 @@ func NewWarehouseCmd(f *cmdutil.Factory) *cobra.Command {
 		Annotations: map[string]string{
 			"IsCore": "true",
 		},
-		PostRun: func(cmd *cobra.Command, args []string) {
-			// refresh tokens every warehouse cmd
-			apiClient, err := f.ApiClient()
-			if err != nil {
-				panic(err)
-			}
-			err = apiClient.RefreshTokens()
-			if err != nil {
-				panic(err)
-			}
-		},
 	}
 	warehouseCmd.AddCommand(warehouseStatusCmd.NewCmdWarehouseStatus(f))
 	warehouseCmd.AddCommand(warehouseListCmd.NewCmdWarehouseList(f))

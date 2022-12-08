@@ -48,11 +48,6 @@ func (c *APIClient) Login() error {
 	return nil
 }
 
-func (c *APIClient) resetTokens(accessToken string, refreshToken string) {
-	c.AccessToken = accessToken
-	c.RefreshToken = refreshToken
-}
-
 // RefreshTokens every api cmd
 func (c *APIClient) RefreshTokens() error {
 	req := struct {

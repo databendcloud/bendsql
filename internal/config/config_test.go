@@ -17,6 +17,7 @@ package config
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -26,26 +27,33 @@ func NewMockConfig(cfg *Config) Configer {
 }
 
 func TestConfig(t *testing.T) {
+	expires := time.Now().Add(time.Hour * 24 * 30)
 	args := []Config{{
-		UserEmail:    "databend@datafuse.com",
-		AccessToken:  "xxx",
-		RefreshToken: "yyy",
-		Warehouse:    "test",
-		Org:          "databend",
+		Warehouse: "test",
+		Org:       "databend",
+		Auth: &Token{
+			AccessToken:  "xxx",
+			RefreshToken: "yyy",
+			TokenExpires: expires,
+		},
 	},
 		{
-			UserEmail:    "databend1@datafuse.com",
-			AccessToken:  "xxx",
-			RefreshToken: "yyy",
-			Warehouse:    "test",
-			Org:          "databend1",
+			Warehouse: "test",
+			Org:       "databend1",
+			Auth: &Token{
+				AccessToken:  "xxx",
+				RefreshToken: "yyy",
+				TokenExpires: expires,
+			},
 		},
 		{
-			UserEmail:    "databend2@datafuse.com",
-			AccessToken:  "xxx",
-			RefreshToken: "yyy",
-			Warehouse:    "test",
-			Org:          "databend2",
+			Warehouse: "test",
+			Org:       "databend2",
+			Auth: &Token{
+				AccessToken:  "xxx",
+				RefreshToken: "yyy",
+				TokenExpires: expires,
+			},
 		},
 	}
 
@@ -56,15 +64,11 @@ func TestConfig(t *testing.T) {
 		warehouse, err := c.Get(KeyWarehouse)
 		assert.NoError(t, err)
 		assert.Equal(t, args[i].Warehouse, warehouse)
-		email, err := c.Get(KeyUserEmail)
 		assert.NoError(t, err)
-		assert.Equal(t, args[i].UserEmail, email)
-		accessToken, err := c.Get(KeyAccessToken)
+		auth, err := c.GetAuth()
 		assert.NoError(t, err)
-		assert.Equal(t, args[i].AccessToken, accessToken)
-		refreshToken, err := c.Get(KeyRefreshToken)
-		assert.NoError(t, err)
-		assert.Equal(t, args[i].RefreshToken, refreshToken)
+		assert.Equal(t, args[i].Auth.AccessToken, auth.AccessToken)
+		assert.Equal(t, args[i].Auth.RefreshToken, auth.RefreshToken)
 		org, err := c.Get(KeyOrg)
 		assert.NoError(t, err)
 		assert.Equal(t, args[i].Org, org)

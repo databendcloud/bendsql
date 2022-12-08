@@ -30,13 +30,11 @@ import (
 )
 
 type APIClient struct {
-	UserEmail        string
-	Password         string
-	AccessToken      string
-	RefreshToken     string
 	CurrentOrgSlug   string
 	CurrentWarehouse string
 	Endpoint         string
+
+	Token *config.Token
 }
 
 const (
@@ -52,13 +50,14 @@ const (
 )
 
 func NewApiClient() (*APIClient, error) {
-	accessToken, refreshToken, err := config.GetAuthToken()
+	accessToken, refreshToken, expires, err := config.GetAuthToken()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get auth token")
 	}
 	client := &APIClient{
 		AccessToken:      accessToken,
 		RefreshToken:     refreshToken,
+		TokenExpires:     tokenExpires,
 		CurrentOrgSlug:   config.GetOrg(),
 		CurrentWarehouse: config.GetWarehouse(),
 		Endpoint:         config.GetEndpoint(),
@@ -66,7 +65,14 @@ func NewApiClient() (*APIClient, error) {
 	return client, nil
 }
 
+func (c *APIClient) DoAuthRequest(method, path string, headers http.Header, req interface{}, resp interface{}) error {
+}
+
 func (c *APIClient) DoRequest(method, path string, headers http.Header, req interface{}, resp interface{}) error {
+
+}
+
+func (c *APIClient) request(method, path string, headers http.Header, req interface{}, resp interface{}) error {
 	var err error
 
 	reqBody := []byte{}
