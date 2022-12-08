@@ -217,9 +217,6 @@ func GetGateway() string {
 }
 
 func setField(key, value string) error {
-	if !Exists(filepath.Join(ConfigDir(), bendsqlCinfigFile)) {
-		return os.ErrNotExist
-	}
 	cfg, err := GetConfig()
 	if err != nil {
 		return errors.Wrap(err, "read config failed")
@@ -247,9 +244,6 @@ func GetToken() (*Token, error) {
 }
 
 func SetToken(token *Token) error {
-	if !Exists(filepath.Join(ConfigDir(), bendsqlCinfigFile)) {
-		return os.ErrNotExist
-	}
 	cfg, err := GetConfig()
 	if err != nil {
 		return errors.Wrap(err, "read config failed")
