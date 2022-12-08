@@ -46,7 +46,7 @@ func (c *APIClient) Login(email, password string) error {
 		Data struct {
 			AccessToken  string    `json:"accessToken"`
 			RefreshToken string    `json:"refreshToken"`
-			ExpiresAt    time.Time `json:"expireAt"`
+			ExpiresAt    time.Time `json:"expiresAt"`
 		} `json:"data,omitempty"`
 	}{}
 	err := c.DoAuthRequest("POST", path, nil, &req, &resp)
