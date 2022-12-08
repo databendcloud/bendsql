@@ -15,17 +15,17 @@
 package config
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/BurntSushi/toml"
 	"github.com/pkg/errors"
 )
 
 const (
-	configDirEnv = "BENDSQL_CONFIG_DIR"
+	configFileEnv = "BENDSQL_CONFIG"
 )
 
 var (
@@ -33,14 +33,15 @@ var (
 )
 
 func init() {
-	var configDir string
-	if a := os.Getenv(configDirEnv); a != "" {
-		configDir = a
+	if a := os.Getenv(configFileEnv); a != "" {
+		configFile = a
 	} else {
-		d, _ := os.UserHomeDir()
-		configDir = filepath.Join(d, ".config", "bendsql")
+		d, err := os.UserHomeDir()
+		if err != nil {
+			panic(err)
+		}
+		configFile = filepath.Join(d, ".config", "bendsql", "config.toml")
 	}
-	configFile = filepath.Join(configDir, "config.json")
 	if !exists(configFile) {
 		fmt.Printf("config file %s not found, creating a new one\n", configFile)
 		if !exists(filepath.Dir(configFile)) {
@@ -54,24 +55,23 @@ func init() {
 			panic(err)
 		}
 		defer f.Close()
-		f.Write([]byte("{}"))
 	}
 }
 
 type Config struct {
-	Org       string `json:"org"`
-	Tenant    string `json:"tenant"`
-	Warehouse string `json:"warehouse"`
-	Gateway   string `json:"gateway"`
-	Endpoint  string `json:"endpoint"`
+	Org       string `toml:"org"`
+	Tenant    string `toml:"tenant"`
+	Warehouse string `toml:"warehouse"`
+	Gateway   string `toml:"gateway"`
+	Endpoint  string `toml:"endpoint"`
 
-	Token *Token `json:"token,omitempty"`
+	Token *Token `toml:"token,omitempty"`
 }
 
 type Token struct {
-	AccessToken  string    `json:"access_token"`
-	RefreshToken string    `json:"refresh_token"`
-	ExpiresAt    time.Time `json:"expires_at"`
+	AccessToken  string    `toml:"access_token"`
+	RefreshToken string    `toml:"refresh_token"`
+	ExpiresAt    time.Time `toml:"expires_at"`
 }
 
 func GetConfig() (*Config, error) {
@@ -80,7 +80,7 @@ func GetConfig() (*Config, error) {
 		return nil, errors.Wrap(err, "read config file")
 	}
 	var cfg Config
-	err = json.Unmarshal(content, &cfg)
+	_, err = toml.Decode(string(content), &cfg)
 	if err != nil {
 		return nil, errors.Wrap(err, "unmarshal config file")
 	}
@@ -88,13 +88,13 @@ func GetConfig() (*Config, error) {
 }
 
 func WriteConfig(cfg *Config) error {
-	content, err := json.Marshal(cfg)
+	file, err := os.OpenFile(configFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
-		return errors.Wrap(err, "marshal config")
+		return errors.Wrap(err, "open config file")
 	}
-	err = os.WriteFile(configFile, content, 0644)
+	err = toml.NewEncoder(file).Encode(cfg)
 	if err != nil {
-		return errors.Wrap(err, "write config file")
+		return errors.Wrap(err, "encode config file")
 	}
 	return nil
 }
