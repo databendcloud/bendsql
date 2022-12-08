@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 
 	"gopkg.in/ini.v1"
 )
@@ -34,7 +33,7 @@ const (
 	KeyUserEmail    string = "user_email"
 	KeyAccessToken  string = "access_token"
 	KeyRefreshToken string = "refresh_token"
-	KeyTokenExpires string = "token_expires"
+	KeyExpiresAt    string = "expires_at"
 	KeyWarehouse    string = "warehouse"
 	KeyOrg          string = "org"
 	KeyTenant       string = "tenant"
@@ -60,7 +59,7 @@ type Config struct {
 type Token struct {
 	AccessToken  string    `ini:"access_token"`
 	RefreshToken string    `ini:"refresh_token"`
-	TokenExpires time.Time `ini:"token_expires"`
+	ExpiresAt    time.Time `ini:"expires_at"`
 }
 
 type Configer interface {
@@ -108,7 +107,7 @@ func (c *Config) Write() error {
 	authSection := cg.Section("auth")
 	authSection.NewKey(KeyAccessToken, c.Auth.AccessToken)
 	authSection.NewKey(KeyRefreshToken, c.Auth.RefreshToken)
-	authSection.NewKey(KeyTokenExpires, c.Auth.TokenExpires.Format(time.RFC3339))
+	authSection.NewKey(KeyExpiresAt, c.Auth.ExpiresAt.Format(time.RFC3339))
 
 	return cg.SaveTo(filepath.Join(ConfigDir(), bendsqlCinfigFile))
 }
@@ -118,27 +117,22 @@ func (c *Config) Get(key string) (string, error) {
 	if !Exists(filepath.Join(ConfigDir(), bendsqlCinfigFile)) {
 		return "", nil
 	}
-	log := logrus.WithField("bendsql", "get")
 	cfg, err := ini.Load(filepath.Join(ConfigDir(), bendsqlCinfigFile))
 	if err != nil {
-		log.Errorf("Fail to read file: %v", err)
-		return "", err
+		return "", errors.Wrap(err, "fail to read config file")
 	}
 	return cfg.Section("").Key(key).String(), nil
 }
 
 func (c *Config) Set(key, value string) error {
-	log := logrus.WithField("bendsql", "set")
 	cfg, err := ini.Load(filepath.Join(ConfigDir(), bendsqlCinfigFile))
 	if err != nil {
-		log.Errorf("Fail to read file: %v", err)
-		return err
+		return errors.Wrap(err, "fail to read config file")
 	}
 	cfg.Section("").Key(key).SetValue(value)
 	err = cfg.SaveTo(filepath.Join(ConfigDir(), bendsqlCinfigFile))
 	if err != nil {
-		log.Errorf("Fail to save file: %v", err)
-		return err
+		return errors.Wrap(err, "fail to save config file")
 	}
 	return nil
 }
@@ -154,14 +148,14 @@ func (c *Config) GetAuth() (*Token, error) {
 	authSection := cfg.Section("auth")
 	accessToken := authSection.Key(KeyAccessToken).String()
 	refreshToken := authSection.Key(KeyRefreshToken).String()
-	tokenExpires, err := authSection.Key(KeyTokenExpires).Time()
+	expiresAt, err := authSection.Key(KeyExpiresAt).Time()
 	if err != nil {
 		return nil, errors.Wrap(err, "fail to parse token expires")
 	}
 	auth := &Token{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		TokenExpires: tokenExpires,
+		ExpiresAt:    expiresAt,
 	}
 	return auth, nil
 }
@@ -174,7 +168,7 @@ func (c *Config) SetAuth(auth *Token) error {
 	authSection := cfg.Section("auth")
 	authSection.Key(KeyAccessToken).SetValue(auth.AccessToken)
 	authSection.Key(KeyRefreshToken).SetValue(auth.RefreshToken)
-	authSection.Key(KeyTokenExpires).SetValue(auth.TokenExpires.Format(time.RFC3339))
+	authSection.Key(KeyExpiresAt).SetValue(auth.ExpiresAt.Format(time.RFC3339))
 	err = cfg.SaveTo(filepath.Join(ConfigDir(), bendsqlCinfigFile))
 	if err != nil {
 		return errors.Wrap(err, "fail to save config file")
@@ -239,6 +233,28 @@ func setField(key, value string) error {
 
 func SetUsingWarehouse(warehouse string) error {
 	return setField(KeyWarehouse, warehouse)
+}
+
+func GetToken() (*Token, error) {
+	if !Exists(filepath.Join(ConfigDir(), bendsqlCinfigFile)) {
+		return nil, nil
+	}
+	cfg, err := GetConfig()
+	if err != nil {
+		return nil, errors.Wrap(err, "read config failed")
+	}
+	return cfg.GetAuth()
+}
+
+func SetToken(token *Token) error {
+	if !Exists(filepath.Join(ConfigDir(), bendsqlCinfigFile)) {
+		return os.ErrNotExist
+	}
+	cfg, err := GetConfig()
+	if err != nil {
+		return errors.Wrap(err, "read config failed")
+	}
+	return cfg.SetAuth(token)
 }
 
 func ConfigDir() string {

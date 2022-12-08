@@ -15,61 +15,89 @@
 package api
 
 import (
+	"net/http"
+	"time"
+
 	dc "github.com/databendcloud/databend-go"
 	"github.com/pkg/errors"
 
 	"github.com/databendcloud/bendsql/internal/config"
 )
 
-func (c *APIClient) Login() error {
+func (c *APIClient) DoAuthRequest(method, path string, headers http.Header, req interface{}, resp interface{}) error {
+	if headers != nil {
+		headers = headers.Clone()
+	} else {
+		headers = http.Header{}
+	}
+	return c.request(method, path, headers, req, resp)
+}
+
+func (c *APIClient) Login(email, password string) error {
 	req := struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}{
-		Email:    c.UserEmail,
-		Password: c.Password,
+		Email:    email,
+		Password: password,
 	}
 	path := "/api/v1/account/sign-in"
-	reply := struct {
+	resp := struct {
 		Data struct {
-			AccessToken  string `json:"accessToken"`
-			RefreshToken string `json:"refreshToken"`
+			AccessToken  string    `json:"accessToken"`
+			RefreshToken string    `json:"refreshToken"`
+			ExpiresAt    time.Time `json:"expireAt"`
 		} `json:"data,omitempty"`
 	}{}
-	err := c.DoRequest("POST", path, nil, &req, &reply)
+	err := c.DoAuthRequest("POST", path, nil, &req, &resp)
 	var apiErr dc.APIError
 	if errors.As(err, &apiErr) && dc.IsAuthFailed(err) {
 		apiErr.Hint = "" // shows the server replied message if auth Err
 		return apiErr
 	} else if err != nil {
-		return err
+		return errors.Wrap(err, "failed to login")
 	}
-	c.resetTokens(reply.Data.AccessToken, reply.Data.RefreshToken)
+	token := &config.Token{
+		AccessToken:  resp.Data.AccessToken,
+		RefreshToken: resp.Data.RefreshToken,
+		ExpiresAt:    resp.Data.ExpiresAt,
+	}
+
+	err = config.SetToken(token)
+	if err != nil {
+		return errors.Wrap(err, "failed to save token")
+	}
+	c.Token = token
 	return nil
 }
 
-// RefreshTokens every api cmd
-func (c *APIClient) RefreshTokens() error {
+func (c *APIClient) RefreshTokenIfNeeded() error {
 	req := struct {
 		RefreshToken string `json:"refreshToken"`
 	}{
-		RefreshToken: c.RefreshToken,
+		RefreshToken: c.Token.RefreshToken,
 	}
 	resp := struct {
 		Data struct {
-			AccessToken  string `json:"accessToken"`
-			RefreshToken string `json:"refreshToken"`
+			AccessToken  string    `json:"accessToken"`
+			RefreshToken string    `json:"refreshToken"`
+			ExpiresAt    time.Time `json:"expireAt"`
 		} `json:"data"`
 	}{}
 	path := "/api/v1/account/renew-token"
-	err := c.DoRequest("POST", path, nil, &req, &resp)
+	err := c.DoAuthRequest("POST", path, nil, &req, &resp)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to refresh tokens")
 	}
-	c.resetTokens(resp.Data.AccessToken, resp.Data.RefreshToken)
-	err = config.RenewTokens(c.AccessToken, c.RefreshToken)
+	token := &config.Token{
+		AccessToken:  resp.Data.AccessToken,
+		RefreshToken: resp.Data.RefreshToken,
+		ExpiresAt:    resp.Data.ExpiresAt,
+	}
+	err = config.SetToken(token)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to save token")
 	}
+	c.Token = token
 	return nil
 }

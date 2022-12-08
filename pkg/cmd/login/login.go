@@ -49,7 +49,7 @@ type LoginOptions struct {
 	Endpoint       string
 }
 
-func NewCmdLogin(f *cmdutil.Factory, runF func(*LoginOptions) error) *cobra.Command {
+func NewCmdLogin(f *cmdutil.Factory) *cobra.Command {
 	opts := &LoginOptions{
 		IO:        f.IOStreams,
 		ApiClient: f.ApiClient,
@@ -69,22 +69,19 @@ func NewCmdLogin(f *cmdutil.Factory, runF func(*LoginOptions) error) *cobra.Comm
 		),
 		Example: heredoc.Doc(`
 			# start interactive setup
-			$ bendsql auth login
+			$ bendsql login
 
 			# authenticate by reading the token from a file
-			$ bendsql auth login --email EMAIL --password PASSWORD [--org ORG]
+			$ bendsql login --email EMAIL --password PASSWORD [--org ORG]
 		`),
+		Annotations: map[string]string{
+			"IsCore": "true",
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if opts.IO.CanPrompt() && (opts.Email == "" || opts.Password == "") {
 				// default use interactive tty
 				opts.Interactive = true
 			}
-
-			opts.MainExecutable = f.Executable()
-			if runF != nil {
-				return runF(opts)
-			}
-
 			return loginRun(opts)
 		},
 	}
@@ -148,22 +145,10 @@ func loginRun(opts *LoginOptions) error {
 		}
 	}
 
-	apiClient.UserEmail = opts.Email
-	apiClient.Password = opts.Password
 	apiClient.Endpoint = opts.Endpoint
-	err = apiClient.Login()
+	err = apiClient.Login(opts.Email, opts.Password)
 	if err != nil {
 		return err
-	}
-
-	// get current account info
-	currentAccountInfo, err := apiClient.GetCurrentAccountInfo()
-	if err != nil {
-		return fmt.Errorf("get current account failed: %w", err)
-	}
-	// TODO: new apiClient in a func: sjhan
-	if cfg.UserEmail == "" {
-		cfg.UserEmail = currentAccountInfo.Email
 	}
 
 	orgDtos, err := apiClient.ListOrgs()
@@ -220,15 +205,13 @@ func loginRun(opts *LoginOptions) error {
 		logrus.Info("run `bendsql configure` to change")
 		cfg.Warehouse = warehouses[0].Name
 	}
-
-	cfg.AccessToken = apiClient.AccessToken
-	cfg.RefreshToken = apiClient.RefreshToken
+	cfg.Auth = apiClient.Token
 	cfg.Endpoint = apiClient.Endpoint
 	err = cfg.Write()
 	if err != nil {
 		return fmt.Errorf("save config failed:%w", err)
 	}
 
-	logrus.Infof("%s logged in %s of Databend Cloud %s successfully.", cfg.UserEmail, cfg.Org, cfg.Endpoint)
+	logrus.Infof("logged in %s of Databend Cloud %s successfully.", cfg.Org, cfg.Endpoint)
 	return nil
 }

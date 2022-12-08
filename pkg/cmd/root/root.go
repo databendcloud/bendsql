@@ -16,8 +16,9 @@ package root
 
 import (
 	"github.com/MakeNowJust/heredoc"
-	authCmd "github.com/databendcloud/bendsql/pkg/cmd/auth"
 	completionCmd "github.com/databendcloud/bendsql/pkg/cmd/completion"
+	configureCmd "github.com/databendcloud/bendsql/pkg/cmd/configure"
+	loginCmd "github.com/databendcloud/bendsql/pkg/cmd/login"
 	queryCmd "github.com/databendcloud/bendsql/pkg/cmd/query"
 	shellCmd "github.com/databendcloud/bendsql/pkg/cmd/shell"
 	stageCmd "github.com/databendcloud/bendsql/pkg/cmd/stage"
@@ -38,7 +39,8 @@ func NewCmdRoot(f *cmdutil.Factory, version, buildDate string) *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		Example: heredoc.Doc(`
-			$ bendsql auth login
+			$ bendsql login
+			$ bendsql configure
 			$ bendsql warehouse status
 			$ bendsql warehouse create
 			$ bendsql ls stage
@@ -63,7 +65,8 @@ func NewCmdRoot(f *cmdutil.Factory, version, buildDate string) *cobra.Command {
 	// Child commands
 	cmd.AddCommand(versionCmd.NewCmdVersion(f, version, buildDate))
 	cmd.AddCommand(completionCmd.NewCmdCompletion(f.IOStreams))
-	cmd.AddCommand(authCmd.NewCmdAuth(f))
+	cmd.AddCommand(loginCmd.NewCmdLogin(f))
+	cmd.AddCommand(configureCmd.NewCmdConfigure(f))
 	cmd.AddCommand(warehouseCmd.NewWarehouseCmd(f))
 	cmd.AddCommand(stageCmd.NewCmdStage(f))
 	cmd.AddCommand(queryCmd.NewCmdQuerySQL(f))

@@ -24,7 +24,7 @@ go install github.com/databendcloud/bendsql/cmd/bendsql@latest
 ### Sign in to bendsql
 
 ```shell
-bendsql auth login
+bendsql login
 ```
 
 ![](https://tva3.sinaimg.cn/large/005UfcOkly8h78cbw42jcj30z80b0aat.jpg)

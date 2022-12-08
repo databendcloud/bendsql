@@ -34,7 +34,7 @@ func TestConfig(t *testing.T) {
 		Auth: &Token{
 			AccessToken:  "xxx",
 			RefreshToken: "yyy",
-			TokenExpires: expires,
+			ExpiresAt:    expires,
 		},
 	},
 		{
@@ -43,7 +43,7 @@ func TestConfig(t *testing.T) {
 			Auth: &Token{
 				AccessToken:  "xxx",
 				RefreshToken: "yyy",
-				TokenExpires: expires,
+				ExpiresAt:    expires,
 			},
 		},
 		{
@@ -52,7 +52,7 @@ func TestConfig(t *testing.T) {
 			Auth: &Token{
 				AccessToken:  "xxx",
 				RefreshToken: "yyy",
-				TokenExpires: expires,
+				ExpiresAt:    expires,
 			},
 		},
 	}
