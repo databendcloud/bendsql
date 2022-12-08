@@ -57,9 +57,6 @@ func NewCmdConfigure(f *cmdutil.Factory) *cobra.Command {
 			# Set with interactive shell
 			$ bendsql auth configure
 		`),
-		Annotations: map[string]string{
-			"IsCore": "true",
-		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := config.GetConfig()
 			if err != nil {
