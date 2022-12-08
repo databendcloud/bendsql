@@ -69,10 +69,10 @@ func NewCmdLogin(f *cmdutil.Factory) *cobra.Command {
 		),
 		Example: heredoc.Doc(`
 			# start interactive setup
-			$ bendsql login
+			$ bendsql cloud login
 
 			# authenticate by reading the token from a file
-			$ bendsql login --email EMAIL --password PASSWORD [--org ORG]
+			$ bendsql cloud login --email EMAIL --password PASSWORD [--org ORG]
 		`),
 		Annotations: map[string]string{
 			"IsCore": "true",
@@ -201,7 +201,7 @@ func loginRun(opts *LoginOptions) error {
 		logrus.Warnf("you have no warehouse in %s", cfg.Org)
 	} else {
 		logrus.Infof("setting current warehouse to %s", warehouses[0].Name)
-		logrus.Info("run `bendsql configure` to change")
+		logrus.Info("run `bendsql cloud configure` to change")
 		cfg.Warehouse = warehouses[0].Name
 	}
 

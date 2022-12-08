@@ -90,7 +90,7 @@ func (c *APIClient) SetCurrentOrg(org, tenant, gateway string) {
 
 func (c *APIClient) DoRequest(method, path string, headers http.Header, req interface{}, resp interface{}) error {
 	if c.cfg.Token == nil {
-		return errors.New("please use `bendsql login` to login your account first")
+		return errors.New("please use `bendsql cloud login` to login your account first")
 	}
 	if c.cfg.Token.ExpiresAt.Before(time.Now()) {
 		err := c.RefreshToken()
@@ -144,7 +144,7 @@ func (c *APIClient) request(method, path string, headers http.Header, req interf
 	}
 
 	if httpResp.StatusCode == http.StatusUnauthorized {
-		return dc.NewAPIError("please use `bendsql login` to login your account.", httpResp.StatusCode, httpRespBody)
+		return dc.NewAPIError("please use `bendsql cloud login` to login your account.", httpResp.StatusCode, httpRespBody)
 	} else if httpResp.StatusCode >= 500 {
 		return dc.NewAPIError("please retry again later.", httpResp.StatusCode, httpRespBody)
 	} else if httpResp.StatusCode >= 400 {
@@ -178,7 +178,7 @@ func (c *APIClient) makeURL(path string) (string, error) {
 
 func (c *APIClient) GetCloudDSN() (dsn string, err error) {
 	if c.cfg.Token == nil {
-		return "", errors.New("please use `bendsql login` to login your account first")
+		return "", errors.New("please use `bendsql cloud login` to login your account first")
 	}
 
 	cfg := dc.NewConfig()

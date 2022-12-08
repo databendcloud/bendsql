@@ -19,18 +19,18 @@ Go to [release](https://github.com/databendcloud/bendsql/releases/latest) and fi
 go install github.com/databendcloud/bendsql/cmd/bendsql@latest
 ```
 
-## Work with bendsql
+## Work with Databend Cloud
 
-### Sign in to bendsql
+### Sign in to Databend Cloud
 
 ```shell
-bendsql login
+bendsql cloud login
 ```
 
 ![](https://tva3.sinaimg.cn/large/005UfcOkly8h78cbw42jcj30z80b0aat.jpg)
 
 If you don't have an account yet, create one in Databend Cloud.
-Signing into bendsql requires your organization's information. You can press Enter to select the default organization during the sign-in process and then change it afterwards with the command ` bendsql configure --org <your_org> `.
+Signing into bendsql requires your organization's information. You can press Enter to select the default organization during the sign-in process and then change it afterwards with the command ` bendsql cloud configure --org <your_org> `.
 
 ### Manage Warehouses
 
@@ -38,7 +38,7 @@ bendsql provides a bunch of commands to work with warehouses in Databend Cloud.
 
 ```shell
 USAGE
-  bendsql warehouse cmd [flags]
+  bendsql cloud warehouse cmd [flags]
 CORE COMMANDS
   create:      Create a warehouse
   delete:      Delete a warehouse
@@ -49,7 +49,7 @@ CORE COMMANDS
 INHERITED FLAGS
   --help   Show help for command
 LEARN MORE
-  Use 'bendsql <command> <subcommand> --help' for more information about a command.
+  Use 'bendsql cloud <command> <subcommand> --help' for more information about a command.
 ```
 
 ### Manage Stages
@@ -59,17 +59,20 @@ LEARN MORE
 ```shell
 Operate stage
 USAGE
-  bendsql stage <command> [flags]
+  bendsql cloud stage <command> [flags]
 CORE COMMANDS
   ls:          List stage or files in stage
   upload:      Upload file to stage using warehouse
 INHERITED FLAGS
   --help   Show help for command
 LEARN MORE
-  Use 'bendsql <command> <subcommand> --help' for more information about a command.
+  Use 'bendsql cloud <command> <subcommand> --help' for more information about a command.
 ```
 
 ![](https://tva2.sinaimg.cn/large/005UfcOkly8h78cduok6uj30zk04yaay.jpg)
+
+
+## Work with BendSQL
 
 ### Run SQL Queries
 You can even run SQL queries with bendsql. Specify a large warehouse for queries that need more computing resources.
@@ -78,8 +81,15 @@ You can even run SQL queries with bendsql. Specify a large warehouse for queries
 bendsql query YOURSQL --warehouse YOURWAREHOUSAE
 ```
 
-To make you more productive with bendsql, we're improving the command `bendsql query` to provide an interactive and user-friendly experience for SQL queries.
+### Run Interactive Shell
+
+You can get an interractive database shell powered by [usql](https://github.com/xo/usql) with bendsql.
+
+```shell
+bendsql shell
+```
+
 
 ### Do More with bendsql
 
-Type `bendsql -h` and discover more useful commands to make your work easier. 
+Type `bendsql -h` and discover more useful commands to make your work easier.
