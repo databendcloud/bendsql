@@ -18,7 +18,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/databendcloud/bendsql/internal/config"
 	"github.com/pkg/errors"
 
 	"github.com/databendcloud/bendsql/api"
@@ -49,6 +48,7 @@ func NewCmdStageList(f *cmdutil.Factory) *cobra.Command {
 		Use:   "ls",
 		Short: "List stage or files in stage",
 		Long:  "List stage or files in stage",
+		Args:  cobra.MaximumNArgs(1),
 		Example: heredoc.Doc(`
 			# list all stages in your account
 			$ bendsql stage ls
@@ -57,38 +57,44 @@ func NewCmdStageList(f *cmdutil.Factory) *cobra.Command {
 			# list the file info in @stage
 			$ bendsql stage ls @StageName/FileName
 		`),
-		Run: func(cmd *cobra.Command, args []string) {
-			opts.StageName = stage
-			opts.Warehouse = config.GetWarehouse()
-			// has stage name, show the files in stage
-			if len(args) == 1 {
-				stage = args[0]
-				opts.InsertSQL = fmt.Sprintf("list %s", stage)
-				err := listStage(opts)
-				if err != nil {
-					fmt.Printf("list files in stage %s failed, err: %v", stage, err)
-				}
-				return
+		RunE: func(cmd *cobra.Command, args []string) error {
+			apiClient, err := opts.ApiClient()
+			if err != nil {
+				return errors.Wrap(err, "get api client failed")
+			}
+			warehouse := apiClient.CurrentWarehouse()
+			if warehouse == "" {
+				return errors.New("no warehouse selected, use bendsql warehouse use to select a warehouse")
 			}
 
-			opts.InsertSQL = "SHOW STAGES;"
-			err := listStage(opts)
-			if err != nil {
-				errors.Wrap(err, "list stage failed")
-				return
+			opts.Warehouse = warehouse
+			opts.StageName = stage
+
+			switch len(args) {
+			case 0:
+				opts.InsertSQL = "SHOW STAGES;"
+				err = listStage(apiClient, opts)
+				if err != nil {
+					return errors.Wrap(err, "list stage failed")
+				}
+			case 1:
+				// has stage name, show the files in stage
+				stage = args[0]
+				opts.InsertSQL = fmt.Sprintf("list %s", stage)
+				err := listStage(apiClient, opts)
+				if err != nil {
+					return errors.Wrapf(err, "list files in stage %s failed", stage)
+				}
 			}
+			return nil
 		},
 	}
 
 	return cmd
 }
 
-func listStage(opts *lsOptions) error {
+func listStage(apiClient *api.APIClient, opts *lsOptions) error {
 	var stagesStr string
-	apiClient, err := opts.ApiClient()
-	if err != nil {
-		return err
-	}
 	queryResp, err := apiClient.Query(opts.Warehouse, opts.InsertSQL)
 	if err != nil {
 		return err

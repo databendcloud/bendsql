@@ -17,7 +17,7 @@ package warehouse
 import (
 	"fmt"
 
-	"github.com/databendcloud/bendsql/internal/config"
+	"github.com/pkg/errors"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/databendcloud/bendsql/pkg/cmdutil"
@@ -30,38 +30,37 @@ func NewCmdWarehouseStatus(f *cmdutil.Factory) *cobra.Command {
 		Use:   "status warehouseName",
 		Short: "show warehouse status",
 		Long:  "show warehouse status",
+		Args:  cobra.MaximumNArgs(1),
 		Example: heredoc.Doc(`
 			# show warehouse status
 			$ bendsql warehouse status WAREHOUSENAME
 		`),
-		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) > 1 {
-				fmt.Printf("Wrong params, example: bendsql warehouse status WAREHOUSENAME \n")
-				return
-			}
-			if len(args) == 0 {
-				args = append(args, config.GetWarehouse())
-			}
-			warehouseStatus, err := showWarehouseStatus(f, args[0])
+		RunE: func(cmd *cobra.Command, args []string) error {
+			apiClient, err := f.ApiClient()
 			if err != nil {
-				fmt.Printf("show warehouse %s status failed, err: %v", args[0], err)
+				return errors.Wrap(err, "new api client failed")
 			}
-			fmt.Println(warehouseStatus)
+			var warehouse string
+			switch len(args) {
+			case 0:
+				warehouse = apiClient.CurrentWarehouse()
+			case 1:
+				warehouse = args[0]
+			default:
+				return errors.Wrap(err, "wrong params, example: bendsql warehouse status WAREHOUSENAME")
+			}
+
+			warehouseStatus, err := apiClient.ViewWarehouse(warehouse)
+			if err != nil {
+				return errors.Wrap(err, "show warehouse status failed")
+			}
+			fmt.Printf("warehouse %s status is %s, size is %s, readyInstance is %d, totalInstance is %d\n",
+				warehouseStatus.Name, warehouseStatus.State,
+				warehouseStatus.Size, warehouseStatus.ReadyInstances,
+				warehouseStatus.TotalInstances)
+			return nil
 		},
 	}
 
 	return cmd
-}
-
-func showWarehouseStatus(f *cmdutil.Factory, warehouseName string) (string, error) {
-	apiClient, err := f.ApiClient()
-	if err != nil {
-		return "", err
-	}
-	warehouseStatus, err := apiClient.ViewWarehouse(warehouseName)
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("warehouse %s status is %s, size is %s, readyInstance is %d, totalInstance is %d",
-		warehouseName, warehouseStatus.State, warehouseStatus.Size, warehouseStatus.ReadyInstances, warehouseStatus.TotalInstances), nil
 }

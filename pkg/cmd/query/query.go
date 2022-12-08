@@ -18,16 +18,15 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"reflect"
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/databendcloud/bendsql/api"
-	"github.com/databendcloud/bendsql/internal/config"
 	"github.com/databendcloud/bendsql/pkg/cmdutil"
 	"github.com/databendcloud/bendsql/pkg/iostreams"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	_ "github.com/databendcloud/databend-go"
@@ -46,9 +45,7 @@ func NewCmdQuerySQL(f *cmdutil.Factory) *cobra.Command {
 		IO:        f.IOStreams,
 		ApiClient: f.ApiClient,
 	}
-	var warehouse, querySQL string
 	var sqlStdin bool
-	var verbose bool
 
 	cmd := &cobra.Command{
 		Use:   "query",
@@ -62,19 +59,12 @@ func NewCmdQuerySQL(f *cmdutil.Factory) *cobra.Command {
 			# use stdin
 			$ echo "select * from YOURTABLE limit 10" | bendsql query
 		`),
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 1 {
-				querySQL = args[0]
+				opts.QuerySQL = args[0]
 			}
-			opts.Warehouse = warehouse
-			opts.QuerySQL = querySQL
-			opts.Verbose = verbose
 
-			cfg, err := config.GetConfig()
-			if err != nil {
-				panic(err)
-			}
-			if len(querySQL) == 0 {
+			if len(opts.QuerySQL) == 0 {
 				sqlStdin = true
 			}
 			if sqlStdin {
@@ -87,57 +77,53 @@ func NewCmdQuerySQL(f *cmdutil.Factory) *cobra.Command {
 				opts.QuerySQL = strings.TrimSpace(string(sql))
 			}
 
-			if warehouse == "" {
-				// TODO: check the warehouse whether in warehouse list
-				warehouse, err = cfg.Get(config.KeyWarehouse)
-				if warehouse == "" || err != nil {
-					fmt.Printf("get default warehouse failed, please your default warehouse in $HOME/.config/bendsql/bendsql.ini")
-					os.Exit(1)
-				}
-				opts.Warehouse = warehouse
-			}
-			err = execQueryByDriver(opts)
+			apiClient, err := opts.ApiClient()
 			if err != nil {
-				fmt.Printf("exec query failed, err: %v", err)
+				return errors.Wrap(err, "failed to get api client")
+			}
+
+			if opts.Warehouse == "" {
+				opts.Warehouse = apiClient.CurrentWarehouse()
+			}
+			if opts.Warehouse == "" {
+				return errors.Wrap(err, "warehouse not selected")
+			}
+
+			dsn, err := apiClient.GetCloudDSN()
+			if err != nil {
+				return errors.Wrap(err, "failed to get cloud dsn")
+			}
+
+			err = execQueryByDriver(opts, dsn)
+			if err != nil {
+				fmt.Printf("exec query failed, err: %v\n", err)
 				os.Exit(1)
 			}
+			return nil
 		},
 	}
 
-	cmd.Flags().StringVar(&warehouse, "warehouse", "", "warehouse")
-	cmd.Flags().BoolVar(&verbose, "verbose", false, "display progress info across paginated results")
+	cmd.Flags().StringVar(&opts.Warehouse, "warehouse", "", "warehouse")
+	cmd.Flags().BoolVar(&opts.Verbose, "verbose", false, "display progress info across paginated results")
 
 	return cmd
 }
 
-func newDatabendCloudDSN(opts *querySQLOptions) (string, error) {
-	apiClient, err := opts.ApiClient()
-	if err != nil {
-		return "", err
-	}
-	return apiClient.GetCloudDSN()
-}
-
-func execQueryByDriver(opts *querySQLOptions) error {
-	dsn, err := newDatabendCloudDSN(opts)
-	if err != nil {
-		return err
-	}
+func execQueryByDriver(opts *querySQLOptions, dsn string) error {
 	db, err := sql.Open("databend", dsn)
 	if err != nil {
-		log.Fatalf("failed to connect. %v, err: %v", dsn, err)
+		return errors.Wrap(err, "failed to open databend driver")
 	}
 	defer db.Close()
 
 	rows, err := db.Query(opts.QuerySQL)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to query")
 	}
 	_, err = scanValues(rows)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to scan values")
 	}
-
 	return nil
 }
 

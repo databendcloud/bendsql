@@ -43,8 +43,6 @@ func NewCmdConfigure(f *cmdutil.Factory) *cobra.Command {
 		IO:        f.IOStreams,
 		ApiClient: f.ApiClient,
 	}
-	var org, warehouse string
-
 	cmd := &cobra.Command{
 		Use:   "configure",
 		Short: "Set your default org and using warehouse",
@@ -62,57 +60,68 @@ func NewCmdConfigure(f *cmdutil.Factory) *cobra.Command {
 			if err != nil {
 				return errors.Wrap(err, "new config failed")
 			}
-			if org != "" {
-				opts.Org = org
-				err = cfg.Set(config.KeyOrg, org)
+
+			apiClient, err := opts.ApiClient()
+			if err != nil {
+				return errors.Wrap(err, "new api client failed")
+			}
+			orgDtos, err := apiClient.ListOrgs()
+			if err != nil {
+				return errors.Wrap(err, "list orgs failed")
+			}
+			if opts.Org == "" {
+				err = askForOrg(opts, orgDtos)
 				if err != nil {
-					return errors.Wrap(err, "set org failed")
+					return errors.Wrap(err, "ask for org failed")
 				}
 			}
-			if warehouse != "" {
-				opts.Warehouse = warehouse
-				// TODO: check the warehouse whether in warehouse list
-				err = cfg.Set(config.KeyWarehouse, warehouse)
-				if err != nil {
-					return errors.Wrap(err, "set warehouse failed")
+			for _, org := range orgDtos {
+				if org.OrgSlug == opts.Org {
+					cfg.Org = org.OrgSlug
+					cfg.Tenant = org.OrgTenantID
+					cfg.Gateway = org.Gateway
+					break
 				}
 			}
-			if org == "" || warehouse == "" {
-				err = configureRunInteractive(opts)
+
+			warehouseDtos, err := apiClient.ListWarehouses()
+			if err != nil {
+				return errors.Wrap(err, "list warehouses failed")
+			}
+			if opts.Warehouse == "" {
+				err = askForWarehouse(opts, warehouseDtos)
 				if err != nil {
-					return errors.Wrap(err, "configure failed")
+					return errors.Wrap(err, "ask for warehouse failed")
 				}
+			}
+			for _, warehouse := range warehouseDtos {
+				if warehouse.Name == opts.Warehouse {
+					cfg.Warehouse = warehouse.Name
+					break
+				}
+			}
+
+			err = config.WriteConfig(cfg)
+			if err != nil {
+				return errors.Wrap(err, "write config failed")
 			}
 			fmt.Printf("configure success, current org is %s, current warehosue is %s\n", opts.Org, opts.Warehouse)
 			return nil
 		},
 	}
 
-	cmd.Flags().StringVar(&org, "org", "", "org")
-	cmd.Flags().StringVar(&warehouse, "warehouse", "", "warehouse")
+	cmd.Flags().StringVar(&opts.Org, "org", "", "org")
+	cmd.Flags().StringVar(&opts.Warehouse, "warehouse", "", "warehouse")
 
 	return cmd
 }
 
-func configureRunInteractive(opts *ConfigureOptions) error {
-	cfg, err := config.GetConfig()
-	if err != nil {
-		return errors.Wrap(err, "new config failed")
-	}
-	apiClient, err := opts.ApiClient()
-	if err != nil {
-		return errors.Wrap(err, "new api client failed")
-	}
-
-	orgDtos, err := apiClient.ListOrgs()
-	if err != nil {
-		return errors.Wrap(err, "list orgs failed")
-	}
+func askForOrg(opts *ConfigureOptions, orgDtos []api.OrgMembershipDTO) error {
 	var orgs []string
 	for i := range orgDtos {
 		orgs = append(orgs, orgDtos[i].OrgSlug)
 	}
-	err = prompt.SurveyAskOne(
+	err := prompt.SurveyAskOne(
 		&survey.Select{
 			Message: "Select your working org:",
 			Options: orgs,
@@ -124,20 +133,15 @@ func configureRunInteractive(opts *ConfigureOptions) error {
 	if err != nil {
 		return errors.Wrap(err, "could not prompt")
 	}
-	err = cfg.Set(config.KeyOrg, opts.Org)
-	if err != nil {
-		return errors.Wrap(err, "set org failed")
-	}
+	return nil
+}
 
-	warehouseDtos, err := apiClient.ListWarehouses()
-	if err != nil {
-		return errors.Wrap(err, "list warehouses failed")
-	}
+func askForWarehouse(opts *ConfigureOptions, warehouseDtos []api.WarehouseStatusDTO) error {
 	var warehouses []string
 	for i := range warehouseDtos {
 		warehouses = append(warehouses, warehouseDtos[i].Name)
 	}
-	err = prompt.SurveyAskOne(
+	err := prompt.SurveyAskOne(
 		&survey.Select{
 			Message: "Select your working warehouse:",
 			Options: warehouses,
@@ -149,11 +153,5 @@ func configureRunInteractive(opts *ConfigureOptions) error {
 	if err != nil {
 		return errors.Wrap(err, "could not prompt")
 	}
-
-	err = cfg.Set(config.KeyWarehouse, opts.Warehouse)
-	if err != nil {
-		return errors.Wrap(err, "set warehouse failed")
-	}
-
 	return nil
 }

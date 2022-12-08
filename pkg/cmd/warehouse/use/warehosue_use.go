@@ -16,9 +16,10 @@ package warehouse
 
 import (
 	"fmt"
+
 	"github.com/MakeNowJust/heredoc"
-	"github.com/databendcloud/bendsql/internal/config"
 	"github.com/databendcloud/bendsql/pkg/cmdutil"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -27,44 +28,26 @@ func NewCmdWarehouseUse(f *cmdutil.Factory) *cobra.Command {
 		Use:   "use",
 		Short: "select working warehouse",
 		Long:  "select working warehouse",
+		Args:  cobra.ExactArgs(1),
 		Example: heredoc.Doc(`
 			# "select working warehouse",
 			$ bendsql warehouse use WORKINGWAREHOUSE
 		`),
-		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) != 1 {
-				fmt.Printf("Wrong params, example: bendsql warehouse use [WAREHOUSENAME] \n")
-				return
+		RunE: func(cmd *cobra.Command, args []string) error {
+			apiClient, err := f.ApiClient()
+			if err != nil {
+				return errors.Wrap(err, "get api client failed")
 			}
 			warehouse := args[0]
-			if !isWarehouseExist(f, warehouse) {
-				fmt.Printf("warehouse %s not exist", warehouse)
-			}
-			err := config.SetUsingWarehouse(warehouse)
+			err = apiClient.SetCurrentWarehouse(warehouse)
 			if err != nil {
-				fmt.Printf("set working warehouse %s failed", warehouse)
+				return errors.Wrapf(err, "set working warehouse %s failed", warehouse)
 			}
 
 			fmt.Printf("Now using warehouse %s", warehouse)
+			return nil
 		},
 	}
 
 	return cmd
-}
-
-func isWarehouseExist(f *cmdutil.Factory, warehouse string) bool {
-	apiClient, err := f.ApiClient()
-	if err != nil {
-		return false
-	}
-	warehouseList, err := apiClient.ListWarehouses()
-	if err != nil {
-		return false
-	}
-	for i := range warehouseList {
-		if warehouse == warehouseList[i].Name {
-			return true
-		}
-	}
-	return false
 }

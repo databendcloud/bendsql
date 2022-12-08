@@ -19,57 +19,62 @@ import (
 	"time"
 
 	"github.com/avast/retry-go"
+	"github.com/pkg/errors"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/databendcloud/bendsql/internal/config"
+	"github.com/databendcloud/bendsql/api"
 	"github.com/databendcloud/bendsql/pkg/cmdutil"
 	"github.com/spf13/cobra"
 )
 
 func NewCmdWarehouseResume(f *cmdutil.Factory) *cobra.Command {
-
 	var wait bool
 	cmd := &cobra.Command{
 		Use:   "resume warehouseName --wait",
 		Short: "Resume a warehouse",
 		Long:  "Resume a warehouse",
+		Args:  cobra.MaximumNArgs(1),
 		Example: heredoc.Doc(`
 			# resume a warehouse and return until the warehouse running
 			$ bendsql warehouse resume WAREHOUSENAME --wait
-			
-			# resume a warehouse and return 
+
+			# resume a warehouse and return
 			$ bendsql warehouse resume WAREHOUSENAME
 		`),
-		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) > 1 {
-				fmt.Printf("Wrong params, example: bendsql warehouse resume WAREHOUSENAME \n")
-				return
-			}
-			if len(args) == 0 {
-				args = append(args, config.GetWarehouse())
-			}
-			err := resumeWarehouse(f, args[0], wait)
+		RunE: func(cmd *cobra.Command, args []string) error {
+			apiClient, err := f.ApiClient()
 			if err != nil {
-				fmt.Printf("resume warehouse %s failed,err: %v", args[0], err)
+				return errors.Wrap(err, "get api client failed")
 			}
+			var warehouse string
+			switch len(args) {
+			case 0:
+				warehouse = apiClient.CurrentWarehouse()
+			case 1:
+				warehouse = args[0]
+			default:
+				return errors.New("wrong params, example: bendsql warehouse resume WAREHOUSENAME")
+			}
+			err = resumeWarehouse(apiClient, warehouse, wait)
+			if err != nil {
+				return errors.Wrapf(err, "resume warehouse %s failed", warehouse)
+			}
+			return nil
 		},
 	}
 	cmd.Flags().BoolVar(&wait, "wait", false, "Wait until resume warehouse success")
 	return cmd
 }
 
-func resumeWarehouse(f *cmdutil.Factory, warehouseName string, wait bool) error {
-	apiClient, err := f.ApiClient()
+func resumeWarehouse(apiClient *api.APIClient, warehouseName string, wait bool) error {
+	err := apiClient.ResumeWarehouse(warehouseName)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "resume warehouse failed")
 	}
+
 	if wait {
 		err = retry.Do(
 			func() (err error) {
-				err = apiClient.ResumeWarehouse(warehouseName)
-				if err != nil {
-					panic(err)
-				}
 				status, err := apiClient.ViewWarehouse(warehouseName)
 				if err != nil {
 					panic(err)
@@ -83,9 +88,10 @@ func resumeWarehouse(f *cmdutil.Factory, warehouseName string, wait bool) error 
 			retry.Delay(1*time.Second),
 			retry.Attempts(20),
 		)
+		if err != nil {
+			return errors.Wrap(err, "wait for resume warehouse failed")
+		}
 	}
-	err = apiClient.ResumeWarehouse(warehouseName)
-	fmt.Printf("resume warehouse %s done please use `bendsql warehouse status WAREHOUSENAME to check`", warehouseName)
-
-	return err
+	fmt.Printf("resume warehouse %s done, please use `bendsql warehouse status WAREHOUSENAME` to check", warehouseName)
+	return nil
 }

@@ -15,267 +15,91 @@
 package config
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/pkg/errors"
+)
 
-	"gopkg.in/ini.v1"
+const (
+	configDirEnv = "BENDSQL_CONFIG_DIR"
 )
 
 var (
-	once sync.Once
+	configFile = ""
 )
 
-const (
-	KeyUserEmail    string = "user_email"
-	KeyAccessToken  string = "access_token"
-	KeyRefreshToken string = "refresh_token"
-	KeyExpiresAt    string = "expires_at"
-	KeyWarehouse    string = "warehouse"
-	KeyOrg          string = "org"
-	KeyTenant       string = "tenant"
-	KeyEndpoint     string = "endpoint"
-	KeyGateway      string = "gateway"
-)
-
-const (
-	bendsqlConfigDir  = "BENDSQL_CONFIG_DIR"
-	bendsqlCinfigFile = "bendsql.ini"
-)
+func init() {
+	var configDir string
+	if a := os.Getenv(configDirEnv); a != "" {
+		configDir = a
+	} else {
+		d, _ := os.UserHomeDir()
+		configDir = filepath.Join(d, ".config", "bendsql")
+	}
+	configFile = filepath.Join(configDir, "config.json")
+	if !exists(configFile) {
+		fmt.Printf("config file %s not found, creating a new one\n", configFile)
+		if !exists(filepath.Dir(configFile)) {
+			err := os.MkdirAll(filepath.Dir(configFile), 0755)
+			if err != nil {
+				panic(err)
+			}
+		}
+		f, err := os.Create(configFile)
+		if err != nil {
+			panic(err)
+		}
+		defer f.Close()
+		f.Write([]byte("{}"))
+	}
+}
 
 type Config struct {
-	Org       string `ini:"org"`
-	Tenant    string `ini:"tenant"`
-	Warehouse string `ini:"warehouse"`
-	Gateway   string `ini:"gateway"`
-	Endpoint  string `init:"endpoint"`
+	Org       string `json:"org"`
+	Tenant    string `json:"tenant"`
+	Warehouse string `json:"warehouse"`
+	Gateway   string `json:"gateway"`
+	Endpoint  string `json:"endpoint"`
 
-	Auth *Token `ini:"auth"`
+	Token *Token `json:"token,omitempty"`
 }
 
 type Token struct {
-	AccessToken  string    `ini:"access_token"`
-	RefreshToken string    `ini:"refresh_token"`
-	ExpiresAt    time.Time `ini:"expires_at"`
+	AccessToken  string    `json:"access_token"`
+	RefreshToken string    `json:"refresh_token"`
+	ExpiresAt    time.Time `json:"expires_at"`
 }
 
-type Configer interface {
-	Get(string) (string, error)
-	Set(string, string) error
-	GetAuth() (*Token, error)
-	SetAuth(*Token) error
-}
-
-func GetConfig() (Configer, error) {
-	c, err := Read()
+func GetConfig() (*Config, error) {
+	content, err := os.ReadFile(configFile)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "read config file")
 	}
-	return c, nil
+	var cfg *Config
+	err = json.Unmarshal(content, cfg)
+	if err != nil {
+		return nil, errors.Wrap(err, "unmarshal config file")
+	}
+	return cfg, nil
 }
 
-func (c *Config) Write() error {
-	if Exists(filepath.Join(ConfigDir(), bendsqlCinfigFile)) {
-		err := os.RemoveAll(ConfigDir())
-		if err != nil {
-			return err
-		}
-	}
-	if !Exists(ConfigDir()) {
-		err := os.MkdirAll(ConfigDir(), os.ModePerm)
-		if err != nil {
-			return err
-		}
-	}
-	if !Exists(filepath.Join(ConfigDir(), bendsqlCinfigFile)) {
-		_, err := os.Create(filepath.Join(ConfigDir(), bendsqlCinfigFile))
-		if err != nil {
-			return err
-		}
-	}
-	cg := ini.Empty()
-	defaultSection := cg.Section("")
-	defaultSection.NewKey(KeyWarehouse, c.Warehouse)
-	defaultSection.NewKey(KeyOrg, c.Org)
-	defaultSection.NewKey(KeyTenant, c.Tenant)
-	defaultSection.NewKey(KeyEndpoint, c.Endpoint)
-	defaultSection.NewKey(KeyGateway, c.Gateway)
-
-	authSection := cg.Section("auth")
-	authSection.NewKey(KeyAccessToken, c.Auth.AccessToken)
-	authSection.NewKey(KeyRefreshToken, c.Auth.RefreshToken)
-	authSection.NewKey(KeyExpiresAt, c.Auth.ExpiresAt.Format(time.RFC3339))
-
-	return cg.SaveTo(filepath.Join(ConfigDir(), bendsqlCinfigFile))
-}
-
-// Get a string value from a ConfigFile.
-func (c *Config) Get(key string) (string, error) {
-	if !Exists(filepath.Join(ConfigDir(), bendsqlCinfigFile)) {
-		return "", nil
-	}
-	cfg, err := ini.Load(filepath.Join(ConfigDir(), bendsqlCinfigFile))
+func WriteConfig(cfg *Config) error {
+	content, err := json.Marshal(cfg)
 	if err != nil {
-		return "", errors.Wrap(err, "fail to read config file")
+		return errors.Wrap(err, "marshal config")
 	}
-	return cfg.Section("").Key(key).String(), nil
-}
-
-func (c *Config) Set(key, value string) error {
-	cfg, err := ini.Load(filepath.Join(ConfigDir(), bendsqlCinfigFile))
+	err = os.WriteFile(configFile, content, 0644)
 	if err != nil {
-		return errors.Wrap(err, "fail to read config file")
-	}
-	cfg.Section("").Key(key).SetValue(value)
-	err = cfg.SaveTo(filepath.Join(ConfigDir(), bendsqlCinfigFile))
-	if err != nil {
-		return errors.Wrap(err, "fail to save config file")
+		return errors.Wrap(err, "write config file")
 	}
 	return nil
 }
 
-func (c *Config) GetAuth() (*Token, error) {
-	if !Exists(filepath.Join(ConfigDir(), bendsqlCinfigFile)) {
-		return nil, nil
-	}
-	cfg, err := ini.Load(filepath.Join(ConfigDir(), bendsqlCinfigFile))
-	if err != nil {
-		return nil, errors.Wrap(err, "fail to read config file")
-	}
-	authSection := cfg.Section("auth")
-	accessToken := authSection.Key(KeyAccessToken).String()
-	refreshToken := authSection.Key(KeyRefreshToken).String()
-	expiresAt, err := authSection.Key(KeyExpiresAt).Time()
-	if err != nil {
-		return nil, errors.Wrap(err, "fail to parse token expires")
-	}
-	auth := &Token{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		ExpiresAt:    expiresAt,
-	}
-	return auth, nil
-}
-
-func (c *Config) SetAuth(auth *Token) error {
-	cfg, err := ini.Load(filepath.Join(ConfigDir(), bendsqlCinfigFile))
-	if err != nil {
-		return errors.Wrap(err, "fail to read config file")
-	}
-	authSection := cfg.Section("auth")
-	authSection.Key(KeyAccessToken).SetValue(auth.AccessToken)
-	authSection.Key(KeyRefreshToken).SetValue(auth.RefreshToken)
-	authSection.Key(KeyExpiresAt).SetValue(auth.ExpiresAt.Format(time.RFC3339))
-	err = cfg.SaveTo(filepath.Join(ConfigDir(), bendsqlCinfigFile))
-	if err != nil {
-		return errors.Wrap(err, "fail to save config file")
-	}
-	return nil
-}
-
-func getField(key string) (string, error) {
-	if !Exists(filepath.Join(ConfigDir(), bendsqlCinfigFile)) {
-		return "", nil
-	}
-	cfg, err := GetConfig()
-	if err != nil {
-		return "", errors.Wrap(err, "read config failed")
-	}
-	value, err := cfg.Get(key)
-	if err != nil {
-		return "", errors.Wrap(err, "get field failed")
-	}
-	return value, nil
-}
-
-func GetWarehouse() string {
-	warehouse, _ := getField(KeyWarehouse)
-	return warehouse
-}
-
-func GetEndpoint() string {
-	endpoint, _ := getField(KeyEndpoint)
-	return endpoint
-}
-
-func GetOrg() string {
-	org, _ := getField(KeyOrg)
-	return org
-}
-
-func GetTenant() string {
-	tenant, _ := getField(KeyTenant)
-	return tenant
-}
-
-func GetGateway() string {
-	gateway, _ := getField(KeyGateway)
-	return gateway
-}
-
-func setField(key, value string) error {
-	cfg, err := GetConfig()
-	if err != nil {
-		return errors.Wrap(err, "read config failed")
-	}
-	err = cfg.Set(key, value)
-	if err != nil {
-		return errors.Wrapf(err, "set field %s failed", key)
-	}
-	return nil
-}
-
-func SetUsingWarehouse(warehouse string) error {
-	return setField(KeyWarehouse, warehouse)
-}
-
-func GetToken() (*Token, error) {
-	if !Exists(filepath.Join(ConfigDir(), bendsqlCinfigFile)) {
-		return nil, nil
-	}
-	cfg, err := GetConfig()
-	if err != nil {
-		return nil, errors.Wrap(err, "read config failed")
-	}
-	return cfg.GetAuth()
-}
-
-func SetToken(token *Token) error {
-	cfg, err := GetConfig()
-	if err != nil {
-		return errors.Wrap(err, "read config failed")
-	}
-	return cfg.SetAuth(token)
-}
-
-func ConfigDir() string {
-	var path string
-	if a := os.Getenv(bendsqlConfigDir); a != "" {
-		path = a
-	} else {
-		d, _ := os.UserHomeDir()
-		path = filepath.Join(d, ".config", "bendsql")
-	}
-	return path
-}
-
-// Read bendsql configuration files from the local file system and
-// return a Config.
-func Read() (*Config, error) {
-	var err error
-	var iniCfg *ini.File
-	cfg := &Config{}
-	once.Do(func() {
-		iniCfg, err = ini.Load(filepath.Join(ConfigDir(), bendsqlCinfigFile))
-		err = iniCfg.MapTo(cfg)
-	})
-	return cfg, err
-}
-
-func Exists(path string) bool {
+func exists(path string) bool {
 	_, err := os.Stat(path) //os.Stat获取文件信息
 	if err != nil {
 		if os.IsExist(err) {

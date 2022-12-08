@@ -23,7 +23,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/databendcloud/bendsql/api"
-	"github.com/databendcloud/bendsql/internal/config"
 	"github.com/databendcloud/bendsql/pkg/cmdutil"
 	"github.com/databendcloud/bendsql/pkg/iostreams"
 )
@@ -48,41 +47,36 @@ func NewCmdStageUpload(f *cmdutil.Factory) *cobra.Command {
 		Use:   "upload FILE STAGE",
 		Short: "Upload file to stage using warehouse",
 		Long:  "Upload file to stage using warehouse",
+		Args:  cobra.ExactArgs(2),
 		Example: heredoc.Doc(`
 			# upload file to stage using warehouse with flag
 			$ bendsql stage upload FILE STAGE --warehouse [WAREHOUSENAME]
 		`),
-		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) <= 0 || len(args) > 2 {
-				cmd.Help()
-				return
-			}
+		RunE: func(cmd *cobra.Command, args []string) error {
 			filePath := args[0]
 			stageName := args[1]
 
-			cfg, err := config.GetConfig()
+			apiClient, err := opts.ApiClient()
 			if err != nil {
-				panic(err)
+				return err
 			}
 
 			if warehouse == "" {
-				// TODO: check the warehouse whether in warehouse list
-				warehouse, err = cfg.Get(config.KeyWarehouse)
-				if warehouse == "" || err != nil {
-					fmt.Printf("--warehouse is required")
-					return
-				}
+				warehouse = apiClient.CurrentWarehouse()
+			}
+			if warehouse == "" {
+				return errors.New("no warehouse selected")
 			}
 
 			opts.Warehouse = warehouse
 			opts.StageName = stageName
 			opts.FileName = filePath
-			err = uploadToStage(opts)
+			err = uploadToStage(apiClient, opts)
 			if err != nil {
-				fmt.Printf("upload file to stage failed, err: %v", err)
-				return
+				return errors.Wrap(err, "upload file to stage failed")
 			}
-			fmt.Printf("upload file %s to stage %s successfully", filePath, stageName)
+			fmt.Printf("upload file %s to stage %s successfully\n", filePath, stageName)
+			return nil
 		},
 	}
 
@@ -90,12 +84,8 @@ func NewCmdStageUpload(f *cmdutil.Factory) *cobra.Command {
 	return cmd
 }
 
-func uploadToStage(opts *uploadOptions) error {
+func uploadToStage(apiClient *api.APIClient, opts *uploadOptions) error {
 	fmt.Printf("uploading %s to stage %s... \n", opts.FileName, opts.StageName)
-	apiClient, err := opts.ApiClient()
-	if err != nil {
-		return err
-	}
 	presignUploadSQL := fmt.Sprintf("PRESIGN UPLOAD @%s/%s", opts.StageName, filepath.Base(opts.FileName))
 	resp, err := apiClient.Query(opts.Warehouse, presignUploadSQL)
 	if err != nil {

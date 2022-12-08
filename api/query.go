@@ -27,7 +27,7 @@ import (
 func (c *APIClient) Query(warehouseName, query string) (*QueryResponse, error) {
 	headers := make(http.Header)
 	headers.Set("X-DATABENDCLOUD-WAREHOUSE", warehouseName)
-	headers.Set("X-DATABENDCLOUD-ORG", string(c.CurrentOrgSlug))
+	headers.Set("X-DATABENDCLOUD-ORG", string(c.cfg.Org))
 	request := QueryRequest{
 		SQL: query,
 	}
@@ -38,7 +38,7 @@ func (c *APIClient) Query(warehouseName, query string) (*QueryResponse, error) {
 		return nil, err
 	}
 	if result.Error != nil {
-		return &result, errors.Wrapf(result.Error, "query %s in org %s: %s", warehouseName, c.CurrentOrgSlug)
+		return &result, errors.Wrapf(result.Error, "query %s in org %s: %s", warehouseName, c.cfg.Org)
 	}
 	return &result, nil
 }
@@ -93,7 +93,7 @@ func (c *APIClient) QueryPage(warehouseName, queryId, path string) (*QueryRespon
 	headers := make(http.Header)
 	headers.Set("queryID", queryId)
 	headers.Set("X-DATABENDCLOUD-WAREHOUSE", warehouseName)
-	headers.Set("X-DATABENDCLOUD-ORG", string(c.CurrentOrgSlug))
+	headers.Set("X-DATABENDCLOUD-ORG", string(c.cfg.Org))
 	var result QueryResponse
 	err := retry.Do(
 		func() error {

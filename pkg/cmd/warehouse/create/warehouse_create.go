@@ -30,7 +30,7 @@ func NewCmdWarehouseCreate(f *cmdutil.Factory) *cobra.Command {
 		Short: "Create a warehouse",
 		Long:  "Create a warehouse",
 		Example: heredoc.Doc(`
-			# create a warehouse, the size has Small, Medium, Large, default is Small 
+			# create a warehouse, the size has Small, Medium, Large, default is Small
 			$ bendsql warehouse create WAREHOUSENAME --size Small
 		`),
 		Run: func(cmd *cobra.Command, args []string) {

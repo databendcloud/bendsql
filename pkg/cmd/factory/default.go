@@ -16,7 +16,6 @@ package factory
 
 import (
 	"github.com/databendcloud/bendsql/api"
-	"github.com/databendcloud/bendsql/internal/config"
 	"github.com/databendcloud/bendsql/pkg/cmdutil"
 	"github.com/databendcloud/bendsql/pkg/iostreams"
 )
@@ -25,7 +24,6 @@ func New(appVersion string) *cmdutil.Factory {
 	f := &cmdutil.Factory{
 		ExecutableName: "bendsql",
 		ApiClient:      httpClientFunc(),
-		Config:         configFunc(),
 	}
 
 	f.IOStreams = ioStreams(f)
@@ -37,18 +35,6 @@ func ioStreams(f *cmdutil.Factory) *iostreams.IOStreams {
 	io := iostreams.System()
 
 	return io
-}
-
-func configFunc() func() (config.Configer, error) {
-	var cachedConfig config.Configer
-	var configError error
-	return func() (config.Configer, error) {
-		if cachedConfig != nil || configError != nil {
-			return cachedConfig, configError
-		}
-		cachedConfig, configError = config.GetConfig()
-		return cachedConfig, configError
-	}
 }
 
 func httpClientFunc() func() (*api.APIClient, error) {

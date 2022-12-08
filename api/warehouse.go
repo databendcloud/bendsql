@@ -22,7 +22,7 @@ import (
 )
 
 func (c *APIClient) ListWarehouses() ([]WarehouseStatusDTO, error) {
-	path := fmt.Sprintf("/api/v1/orgs/%s/tenant/warehouses", c.CurrentOrgSlug)
+	path := fmt.Sprintf("/api/v1/orgs/%s/tenant/warehouses", c.cfg.Org)
 	data := struct {
 		Data []WarehouseStatusDTO `json:"data"`
 	}{}
@@ -34,7 +34,7 @@ func (c *APIClient) ListWarehouses() ([]WarehouseStatusDTO, error) {
 }
 
 func (c *APIClient) ViewWarehouse(warehouseName string) (*WarehouseStatusDTO, error) {
-	path := fmt.Sprintf("/api/v1/orgs/%s/tenant/warehouses/%s", c.CurrentOrgSlug, warehouseName)
+	path := fmt.Sprintf("/api/v1/orgs/%s/tenant/warehouses/%s", c.cfg.Org, warehouseName)
 	data := struct {
 		Data WarehouseStatusDTO `json:"data"`
 	}{}
@@ -46,7 +46,7 @@ func (c *APIClient) ViewWarehouse(warehouseName string) (*WarehouseStatusDTO, er
 }
 
 func (c *APIClient) ResumeWarehouse(warehouseName string) error {
-	path := fmt.Sprintf("/api/v1/orgs/%s/tenant/warehouses/%s/resume", c.CurrentOrgSlug, warehouseName)
+	path := fmt.Sprintf("/api/v1/orgs/%s/tenant/warehouses/%s/resume", c.cfg.Org, warehouseName)
 	err := c.DoRequest("POST", path, nil, nil, nil)
 	if err != nil {
 		return fmt.Errorf("failed to resume warehouse: %w", err)
@@ -55,7 +55,7 @@ func (c *APIClient) ResumeWarehouse(warehouseName string) error {
 }
 
 func (c *APIClient) SuspendWarehouse(warehouseName string) error {
-	path := fmt.Sprintf("/api/v1/orgs/%s/tenant/warehouses/%s/suspend", c.CurrentOrgSlug, warehouseName)
+	path := fmt.Sprintf("/api/v1/orgs/%s/tenant/warehouses/%s/suspend", c.cfg.Org, warehouseName)
 	err := c.DoRequest("POST", path, nil, nil, nil)
 	if err != nil {
 		return fmt.Errorf("failed to suspend warehouse: %w", err)
@@ -75,7 +75,7 @@ func (c *APIClient) CreateWarehouse(warehouseName, size string) error {
 		Name: warehouseName,
 		Size: size,
 	}
-	path := fmt.Sprintf("/api/v1/orgs/%s/tenant/warehouses", c.CurrentOrgSlug)
+	path := fmt.Sprintf("/api/v1/orgs/%s/tenant/warehouses", c.cfg.Org)
 	err := c.DoRequest("POST", path, nil, req, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create warehouse: %w", err)
@@ -84,7 +84,7 @@ func (c *APIClient) CreateWarehouse(warehouseName, size string) error {
 }
 
 func (c *APIClient) DeleteWarehouse(warehouseName string) error {
-	path := fmt.Sprintf("/api/v1/orgs/%s/tenant/warehouses/%s", c.CurrentOrgSlug, warehouseName)
+	path := fmt.Sprintf("/api/v1/orgs/%s/tenant/warehouses/%s", c.cfg.Org, warehouseName)
 	err := c.DoRequest("DELETE", path, nil, nil, nil)
 	if err != nil {
 		return fmt.Errorf("failed to delete warehouse: %w", err)

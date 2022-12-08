@@ -63,11 +63,8 @@ func (c *APIClient) Login(email, password string) error {
 		ExpiresAt:    resp.Data.ExpiresAt,
 	}
 
-	err = config.SetToken(token)
-	if err != nil {
-		return errors.Wrap(err, "failed to save token")
-	}
-	c.Token = token
+	// NOTE: should not write config here, in login command instead
+	c.cfg.Token = token
 	return nil
 }
 
@@ -75,7 +72,7 @@ func (c *APIClient) RefreshTokenIfNeeded() error {
 	req := struct {
 		RefreshToken string `json:"refreshToken"`
 	}{
-		RefreshToken: c.Token.RefreshToken,
+		RefreshToken: c.cfg.Token.RefreshToken,
 	}
 	resp := struct {
 		Data struct {
@@ -94,10 +91,10 @@ func (c *APIClient) RefreshTokenIfNeeded() error {
 		RefreshToken: resp.Data.RefreshToken,
 		ExpiresAt:    resp.Data.ExpiresAt,
 	}
-	err = config.SetToken(token)
+	c.cfg.Token = token
+	err = c.WriteConfig()
 	if err != nil {
-		return errors.Wrap(err, "failed to save token")
+		return errors.Wrap(err, "failed to write config")
 	}
-	c.Token = token
 	return nil
 }

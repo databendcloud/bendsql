@@ -97,7 +97,7 @@ func loginRun(opts *LoginOptions) error {
 	cfg := opts.Config
 	apiClient, err := opts.ApiClient()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "could not create api client")
 	}
 
 	if endpoint := os.Getenv("BENDSQL_API_ENDPOINT"); endpoint != "" {
@@ -122,7 +122,7 @@ func loginRun(opts *LoginOptions) error {
 				},
 			}, &opts.Endpoint, survey.WithValidator(survey.Required))
 		if err != nil {
-			return fmt.Errorf("could not prompt: %w", err)
+			return errors.Wrap(err, "could not prompt")
 		}
 	}
 
@@ -133,7 +133,7 @@ func loginRun(opts *LoginOptions) error {
 				Message: "Paste your user email:",
 			}, &opts.Email, survey.WithValidator(survey.Required))
 		if err != nil {
-			return fmt.Errorf("could not prompt: %w", err)
+			return errors.Wrap(err, "could not prompt")
 		}
 	}
 	if opts.Password == "" {
@@ -141,11 +141,11 @@ func loginRun(opts *LoginOptions) error {
 			Message: "Paste your password:",
 		}, &opts.Password, survey.WithValidator(survey.Required))
 		if err != nil {
-			return fmt.Errorf("could not prompt: %w", err)
+			return errors.Wrap(err, "could not prompt")
 		}
 	}
 
-	apiClient.Endpoint = opts.Endpoint
+	apiClient.SetEndpoint(opts.Endpoint)
 	err = apiClient.Login(opts.Email, opts.Password)
 	if err != nil {
 		return err
@@ -193,9 +193,8 @@ func loginRun(opts *LoginOptions) error {
 	if currentOrg == nil {
 		return fmt.Errorf("org %s not found", opts.Org)
 	}
-	apiClient.CurrentOrgSlug = currentOrg.OrgSlug
-	cfg.Org = currentOrg.OrgSlug
-	cfg.Gateway = currentOrg.Gateway
+
+	apiClient.SetCurrentOrg(currentOrg.OrgSlug, currentOrg.OrgTenantID, currentOrg.Gateway)
 
 	warehouses, err := apiClient.ListWarehouses()
 	if err != nil || len(warehouses) == 0 {
@@ -205,11 +204,10 @@ func loginRun(opts *LoginOptions) error {
 		logrus.Info("run `bendsql configure` to change")
 		cfg.Warehouse = warehouses[0].Name
 	}
-	cfg.Auth = apiClient.Token
-	cfg.Endpoint = apiClient.Endpoint
-	err = cfg.Write()
+
+	err = apiClient.WriteConfig()
 	if err != nil {
-		return fmt.Errorf("save config failed:%w", err)
+		return errors.Wrap(err, "could not write config")
 	}
 
 	logrus.Infof("logged in %s of Databend Cloud %s successfully.", cfg.Org, cfg.Endpoint)

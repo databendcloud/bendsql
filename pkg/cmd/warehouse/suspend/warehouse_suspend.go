@@ -18,8 +18,8 @@ import (
 	"fmt"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/databendcloud/bendsql/internal/config"
 	"github.com/databendcloud/bendsql/pkg/cmdutil"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -29,34 +29,32 @@ func NewCmdWarehouseSuspend(f *cmdutil.Factory) *cobra.Command {
 		Use:   "suspend [warehouseName]",
 		Short: "Suspend a warehouse",
 		Long:  "Suspend a warehouse",
+		Args:  cobra.MaximumNArgs(1),
 		Example: heredoc.Doc(`
-			# suspend a warehouse 
+			# suspend a warehouse
 			$ bendsql warehouse suspend [WAREHOUSENAME]
 		`),
-		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) > 1 {
-				fmt.Printf("Wrong params, example: bendsql warehouse suspend [WAREHOUSENAME] \n")
-				return
-			}
-			if len(args) == 0 {
-				args = append(args, config.GetWarehouse())
-			}
-			err := suspendWarehouse(f, args[0])
+		RunE: func(cmd *cobra.Command, args []string) error {
+			apiClient, err := f.ApiClient()
 			if err != nil {
-				fmt.Printf("suspend warehouse %s failed,err: %v", args[0], err)
+				return errors.Wrap(err, "get api client failed")
 			}
+			var warehouse string
+			switch len(args) {
+			case 0:
+				warehouse = apiClient.CurrentWarehouse()
+			case 1:
+				warehouse = args[0]
+			default:
+				return errors.New("wrong params, example: bendsql warehouse suspend WAREHOUSENAME")
+			}
+			err = apiClient.SuspendWarehouse(warehouse)
+			if err != nil {
+				return errors.Wrapf(err, "suspend warehouse %s failed", warehouse)
+			}
+			fmt.Printf("suspend warehouse %s success you can use `bendsql warehouse status WAREHOUSENAME` to check", warehouse)
+			return nil
 		},
 	}
 	return cmd
-}
-
-func suspendWarehouse(f *cmdutil.Factory, warehouseName string) error {
-	apiClient, err := f.ApiClient()
-	if err != nil {
-		return err
-	}
-	err = apiClient.SuspendWarehouse(warehouseName)
-	fmt.Printf("suspend warehouse %s success you can use `bendsql warehouse status WAREHOUSENAME to check`", warehouseName)
-
-	return err
 }

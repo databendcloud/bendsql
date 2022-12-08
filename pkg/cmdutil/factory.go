@@ -21,14 +21,11 @@ import (
 
 	"github.com/databendcloud/bendsql/api"
 
-	"github.com/databendcloud/bendsql/internal/config"
-
 	"github.com/databendcloud/bendsql/pkg/iostreams"
 )
 
 type Factory struct {
 	IOStreams      *iostreams.IOStreams
-	Config         func() (config.Configer, error)
 	ApiClient      func() (*api.APIClient, error)
 	ExecutableName string
 }
