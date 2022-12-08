@@ -15,13 +15,13 @@
 package stage
 
 import (
-	stageListCmd "github.com/databendcloud/bendsql/pkg/cmd/stage/stage_ls"
-	stageUploadCmd "github.com/databendcloud/bendsql/pkg/cmd/stage/stage_upload"
+	stageListCmd "github.com/databendcloud/bendsql/pkg/cmd/cloud/stage/stage_ls"
+	stageUploadCmd "github.com/databendcloud/bendsql/pkg/cmd/cloud/stage/stage_upload"
 	"github.com/databendcloud/bendsql/pkg/cmdutil"
 	"github.com/spf13/cobra"
 )
 
-func NewCmdStage(f *cmdutil.Factory) *cobra.Command {
+func NewStageCmd(f *cmdutil.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "stage <command>",
 		Short: "Operate stage",

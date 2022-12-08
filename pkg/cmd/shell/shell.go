@@ -34,6 +34,9 @@ func NewCmdShell(f *cmdutil.Factory) *cobra.Command {
 		Use:   "shell",
 		Short: "Enter interactive sql shell",
 		Long:  "Enter interactive sql shell",
+		Annotations: map[string]string{
+			"IsCore": "true",
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			apiClient, err := f.ApiClient()
 			if err != nil {

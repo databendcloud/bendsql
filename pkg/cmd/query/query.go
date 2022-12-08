@@ -59,6 +59,9 @@ func NewCmdQuerySQL(f *cmdutil.Factory) *cobra.Command {
 			# use stdin
 			$ echo "select * from YOURTABLE limit 10" | bendsql query
 		`),
+		Annotations: map[string]string{
+			"IsCore": "true",
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 1 {
 				opts.QuerySQL = args[0]

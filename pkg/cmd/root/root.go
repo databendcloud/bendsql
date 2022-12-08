@@ -16,16 +16,14 @@ package root
 
 import (
 	"github.com/MakeNowJust/heredoc"
+	"github.com/spf13/cobra"
+
+	cloudCmd "github.com/databendcloud/bendsql/pkg/cmd/cloud"
 	completionCmd "github.com/databendcloud/bendsql/pkg/cmd/completion"
-	configureCmd "github.com/databendcloud/bendsql/pkg/cmd/configure"
-	loginCmd "github.com/databendcloud/bendsql/pkg/cmd/login"
 	queryCmd "github.com/databendcloud/bendsql/pkg/cmd/query"
 	shellCmd "github.com/databendcloud/bendsql/pkg/cmd/shell"
-	stageCmd "github.com/databendcloud/bendsql/pkg/cmd/stage"
 	versionCmd "github.com/databendcloud/bendsql/pkg/cmd/version"
-	warehouseCmd "github.com/databendcloud/bendsql/pkg/cmd/warehouse"
 	"github.com/databendcloud/bendsql/pkg/cmdutil"
-	"github.com/spf13/cobra"
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -33,18 +31,17 @@ import (
 func NewCmdRoot(f *cmdutil.Factory, version, buildDate string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "bendsql <command> <subcommand> [flags]",
-		Short: "Dababend Cloud CLI",
-		Long:  `Work seamlessly with Databend Cloud from the command line.`,
+		Short: "Dababend CLI",
+		Long:  `Work seamlessly with Databend & Databend Cloud from the command line.`,
 
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		Example: heredoc.Doc(`
-			$ bendsql login
-			$ bendsql configure
-			$ bendsql warehouse status
-			$ bendsql warehouse create
-			$ bendsql stage ls
-		`),
+			$ bendsql cloud login
+			$ bendsql cloud warehouse ls
+			$ bendsql cloud stage ls
+			$ bendsql shell
+			$ bendsql query`),
 		Annotations: map[string]string{
 			"versionInfo": versionCmd.Format(version, buildDate),
 		},
@@ -65,10 +62,7 @@ func NewCmdRoot(f *cmdutil.Factory, version, buildDate string) *cobra.Command {
 	// Child commands
 	cmd.AddCommand(versionCmd.NewCmdVersion(f, version, buildDate))
 	cmd.AddCommand(completionCmd.NewCmdCompletion(f.IOStreams))
-	cmd.AddCommand(loginCmd.NewCmdLogin(f))
-	cmd.AddCommand(configureCmd.NewCmdConfigure(f))
-	cmd.AddCommand(warehouseCmd.NewWarehouseCmd(f))
-	cmd.AddCommand(stageCmd.NewCmdStage(f))
+	cmd.AddCommand(cloudCmd.NewCloudCmd(f))
 	cmd.AddCommand(queryCmd.NewCmdQuerySQL(f))
 	cmd.AddCommand(shellCmd.NewCmdShell(f))
 	return cmd
