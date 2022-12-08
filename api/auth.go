@@ -78,7 +78,7 @@ func (c *APIClient) RefreshToken() error {
 		Data struct {
 			AccessToken  string    `json:"accessToken"`
 			RefreshToken string    `json:"refreshToken"`
-			ExpiresAt    time.Time `json:"expireAt"`
+			ExpiresAt    time.Time `json:"expiresAt"`
 		} `json:"data"`
 	}{}
 	path := "/api/v1/account/renew-token"
