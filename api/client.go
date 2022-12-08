@@ -93,7 +93,7 @@ func (c *APIClient) DoRequest(method, path string, headers http.Header, req inte
 		return errors.New("please use `bendsql login` to login your account first")
 	}
 	if c.cfg.Token.ExpiresAt.Before(time.Now()) {
-		err := c.RefreshTokenIfNeeded()
+		err := c.RefreshToken()
 		if err != nil {
 			return errors.Wrap(err, "failed to refresh token")
 		}

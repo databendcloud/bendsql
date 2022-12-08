@@ -68,7 +68,7 @@ func (c *APIClient) Login(email, password string) error {
 	return nil
 }
 
-func (c *APIClient) RefreshTokenIfNeeded() error {
+func (c *APIClient) RefreshToken() error {
 	req := struct {
 		RefreshToken string `json:"refreshToken"`
 	}{
