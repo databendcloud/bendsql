@@ -79,12 +79,12 @@ func GetConfig() (*Config, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "read config file")
 	}
-	var cfg *Config
-	err = json.Unmarshal(content, cfg)
+	var cfg Config
+	err = json.Unmarshal(content, &cfg)
 	if err != nil {
 		return nil, errors.Wrap(err, "unmarshal config file")
 	}
-	return cfg, nil
+	return &cfg, nil
 }
 
 func WriteConfig(cfg *Config) error {

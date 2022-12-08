@@ -22,6 +22,8 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 func (c *APIClient) GetCurrentAccountInfo() (*AccountInfoDTO, error) {
@@ -43,7 +45,7 @@ func (c *APIClient) ListOrgs() ([]OrgMembershipDTO, error) {
 
 	err := c.DoRequest("GET", "/api/v1/my/orgs", nil, nil, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list orgs: %w, %#v", err, &resp)
+		return nil, errors.Wrap(err, "list orgs request failed")
 	}
 	for i := range resp.Data {
 		orgs = append(orgs, resp.Data[i])
@@ -76,7 +78,7 @@ func (c *APIClient) UploadToStageByPresignURL(presignURL, fileName string, heade
 	}
 	httpResp, err := httpClient.Do(httpReq)
 	if err != nil {
-		return fmt.Errorf("failed http do request: %w", err)
+		return errors.Wrap(err, "failed to upload file with presign url")
 	}
 	defer httpResp.Body.Close()
 	httpRespBody, err := io.ReadAll(httpResp.Body)
