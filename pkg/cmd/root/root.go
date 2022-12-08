@@ -43,7 +43,7 @@ func NewCmdRoot(f *cmdutil.Factory, version, buildDate string) *cobra.Command {
 			$ bendsql configure
 			$ bendsql warehouse status
 			$ bendsql warehouse create
-			$ bendsql ls stage
+			$ bendsql stage ls
 		`),
 		Annotations: map[string]string{
 			"versionInfo": versionCmd.Format(version, buildDate),

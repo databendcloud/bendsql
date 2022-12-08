@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"github.com/databendcloud/bendsql/internal/config"
+	"github.com/pkg/errors"
 
 	"github.com/databendcloud/bendsql/api"
 	"github.com/databendcloud/bendsql/pkg/iostreams"
@@ -73,7 +74,7 @@ func NewCmdStageList(f *cmdutil.Factory) *cobra.Command {
 			opts.InsertSQL = "SHOW STAGES;"
 			err := listStage(opts)
 			if err != nil {
-				fmt.Printf("list stage failed, err: %v", err)
+				errors.Wrap(err, "list stage failed")
 				return
 			}
 		},

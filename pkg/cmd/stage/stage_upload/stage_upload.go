@@ -18,14 +18,14 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/databendcloud/bendsql/internal/config"
+	"github.com/MakeNowJust/heredoc"
+	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
 
 	"github.com/databendcloud/bendsql/api"
-	"github.com/databendcloud/bendsql/pkg/iostreams"
-
-	"github.com/MakeNowJust/heredoc"
+	"github.com/databendcloud/bendsql/internal/config"
 	"github.com/databendcloud/bendsql/pkg/cmdutil"
-	"github.com/spf13/cobra"
+	"github.com/databendcloud/bendsql/pkg/iostreams"
 )
 
 type uploadOptions struct {
@@ -102,11 +102,11 @@ func uploadToStage(opts *uploadOptions) error {
 		return err
 	}
 	if len(resp.Data) < 1 || len(resp.Data[0]) < 2 {
-		return fmt.Errorf("generate presign url failed")
+		return errors.Errorf("generate presign url failed")
 	}
 	headers, ok := resp.Data[0][1].(map[string]interface{})
 	if !ok {
-		return fmt.Errorf("no host for presign url")
+		return errors.Errorf("no host for presign url")
 	}
 	return apiClient.UploadToStageByPresignURL(fmt.Sprintf("%v", resp.Data[0][2]), opts.FileName, headers, true)
 }

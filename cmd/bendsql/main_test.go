@@ -16,11 +16,10 @@ package main
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
 	"net"
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -40,7 +39,7 @@ func Test_printError(t *testing.T) {
 		{
 			name: "DNS error",
 			args: args{
-				err: fmt.Errorf("DNS oopsie: %w", &net.DNSError{
+				err: errors.Errorf("DNS oopsie: %w", &net.DNSError{
 					Name: "api.datafusecloud.com",
 				}),
 				cmd:   nil,

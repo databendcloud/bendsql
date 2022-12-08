@@ -16,11 +16,12 @@ package completion
 
 import (
 	"fmt"
-	"github.com/databendcloud/bendsql/pkg/cmdutil"
-	"github.com/databendcloud/bendsql/pkg/iostreams"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/spf13/cobra"
+
+	"github.com/databendcloud/bendsql/pkg/cmdutil"
+	"github.com/databendcloud/bendsql/pkg/iostreams"
 )
 
 func NewCmdCompletion(io *iostreams.IOStreams) *cobra.Command {
