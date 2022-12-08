@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/databendcloud/bendsql/internal/config"
 	dc "github.com/databendcloud/databend-go"
@@ -137,4 +138,18 @@ func (c *APIClient) makeURL(path string) (string, error) {
 	}
 	u.Path = path
 	return u.String(), nil
+}
+
+func (c *APIClient) GetCloudDSN() (dsn string, err error) {
+	cfg := dc.NewConfig()
+	if strings.HasPrefix(c.Endpoint, "http://") {
+		cfg.SSLMode = "disable"
+	}
+	cfg.Host = config.GetGateway()
+	cfg.Tenant = config.GetTenant()
+	cfg.Warehouse = c.CurrentWarehouse
+	cfg.AccessToken = c.AccessToken
+
+	dsn = cfg.FormatDSN()
+	return
 }

@@ -190,7 +190,7 @@ func loginRun(opts *LoginOptions) error {
 					Options: orgs,
 					Default: orgs[0],
 					Description: func(value string, index int) string {
-						return orgDtos[index].OrgName
+						return orgDtos[index].Description()
 					},
 				}, &opts.Org, survey.WithValidator(survey.Required))
 			if err != nil {

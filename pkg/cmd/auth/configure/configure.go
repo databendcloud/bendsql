@@ -118,7 +118,7 @@ func configureRunInteractive(opts *ConfigureOptions) error {
 			Options: orgs,
 			Default: orgs[0],
 			Description: func(value string, index int) string {
-				return orgDtos[index].String()
+				return orgDtos[index].Description()
 			},
 		}, &opts.Org, survey.WithValidator(survey.Required))
 	if err != nil {
@@ -143,7 +143,7 @@ func configureRunInteractive(opts *ConfigureOptions) error {
 			Options: warehouses,
 			Default: warehouses[0],
 			Description: func(value string, index int) string {
-				return warehouseDtos[index].String()
+				return warehouseDtos[index].Description()
 			},
 		}, &opts.Warehouse, survey.WithValidator(survey.Required))
 	if err != nil {
