@@ -76,13 +76,6 @@ func NewCmdShell(f *cmdutil.Factory) *cobra.Command {
 				return errors.Wrap(err, "failed to open dsn")
 			}
 			return h.Run()
-
-			// usqlPath, err := exec.LookPath("usql")
-			// if err != nil {
-			// 	return errors.Wrap(err, "failed to find usql in PATH")
-			// }
-			// // fmt.Println("running usql with dsn:", dsn)
-			// return syscall.Exec(usqlPath, []string{"usql", dsn}, nil)
 		},
 	}
 
