@@ -50,6 +50,13 @@ func NewClient() (*Client, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get config")
 	}
+
+	if cfg.Cloud == nil {
+		cfg.Cloud = &config.CloudConfig{
+			Endpoint: EndpointGlobal,
+		}
+	}
+
 	client := &Client{
 		cfg: cfg.Cloud,
 	}
