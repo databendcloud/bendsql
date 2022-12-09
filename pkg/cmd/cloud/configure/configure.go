@@ -18,31 +18,22 @@ import (
 	"fmt"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/databendcloud/bendsql/internal/config"
-	"github.com/databendcloud/bendsql/pkg/prompt"
+	"github.com/MakeNowJust/heredoc"
 	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
 
 	"github.com/databendcloud/bendsql/api"
-	"github.com/databendcloud/bendsql/pkg/iostreams"
-
-	"github.com/MakeNowJust/heredoc"
 	"github.com/databendcloud/bendsql/pkg/cmdutil"
-	"github.com/spf13/cobra"
+	"github.com/databendcloud/bendsql/pkg/prompt"
 )
 
 type ConfigureOptions struct {
-	IO        *iostreams.IOStreams
-	ApiClient func() (*api.APIClient, error)
-	Config    config.Config
 	Org       string
 	Warehouse string
 }
 
 func NewCmdConfigure(f *cmdutil.Factory) *cobra.Command {
-	opts := &ConfigureOptions{
-		IO:        f.IOStreams,
-		ApiClient: f.ApiClient,
-	}
+	opts := &ConfigureOptions{}
 	cmd := &cobra.Command{
 		Use:   "configure",
 		Short: "Set your default org and using warehouse",
@@ -50,18 +41,13 @@ func NewCmdConfigure(f *cmdutil.Factory) *cobra.Command {
 		Example: heredoc.Doc(`
 			# Set your default org and using warehouse with flag
 			# NOTE: Using flag is faster than interactive shell
-			$ bendsql auth configure --org ORG --warehouse WAREHOUSENAME
+			$ bendsql cloud configure --org ORG --warehouse WAREHOUSENAME
 
 			# Set with interactive shell
-			$ bendsql auth configure
+			$ bendsql cloud configure
 		`),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, err := config.GetConfig()
-			if err != nil {
-				return errors.Wrap(err, "new config failed")
-			}
-
-			apiClient, err := opts.ApiClient()
+			apiClient, err := api.NewApiClient()
 			if err != nil {
 				return errors.Wrap(err, "new api client failed")
 			}
@@ -77,9 +63,7 @@ func NewCmdConfigure(f *cmdutil.Factory) *cobra.Command {
 			}
 			for _, org := range orgDtos {
 				if org.OrgSlug == opts.Org {
-					cfg.Org = org.OrgSlug
-					cfg.Tenant = org.OrgTenantID
-					cfg.Gateway = org.Gateway
+					apiClient.SetCurrentOrg(org.OrgSlug, org.OrgTenantID, org.Gateway)
 					break
 				}
 			}
@@ -96,12 +80,12 @@ func NewCmdConfigure(f *cmdutil.Factory) *cobra.Command {
 			}
 			for _, warehouse := range warehouseDtos {
 				if warehouse.Name == opts.Warehouse {
-					cfg.Warehouse = warehouse.Name
+					apiClient.SetCurrentWarehouse(warehouse.Name)
 					break
 				}
 			}
 
-			err = config.WriteConfig(cfg)
+			err = apiClient.WriteConfig()
 			if err != nil {
 				return errors.Wrap(err, "write config failed")
 			}

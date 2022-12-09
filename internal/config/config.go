@@ -59,6 +59,23 @@ func init() {
 }
 
 type Config struct {
+	Target string       `toml:"target"`
+	Cloud  *CloudConfig `toml:"cloud,omitempty"`
+	Local  *LocalConfig `toml:"local,omitempty"`
+}
+
+type LocalConfig struct {
+	Host     string `toml:"host"`
+	Port     int    `toml:"port"`
+	Username string `toml:"username"`
+	Password string `toml:"password"`
+	Database string `toml:"database"`
+	SSLMode  string `toml:"sslmode"`
+
+	Options map[string]string `toml:"options"`
+}
+
+type CloudConfig struct {
 	Org       string `toml:"org"`
 	Tenant    string `toml:"tenant"`
 	Warehouse string `toml:"warehouse"`

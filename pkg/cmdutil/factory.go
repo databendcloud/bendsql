@@ -30,6 +30,14 @@ type Factory struct {
 	ExecutableName string
 }
 
+func NewFactory(appVersion string) *Factory {
+	f := &Factory{
+		ExecutableName: "bendsql",
+		IOStreams:      iostreams.System(),
+	}
+	return f
+}
+
 // Executable is the path to the currently invoked binary
 func (f *Factory) Executable() string {
 	if !strings.ContainsRune(f.ExecutableName, os.PathSeparator) {
