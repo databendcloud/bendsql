@@ -1,5 +1,5 @@
 ## What is `bendsql`?
-bendsql is a handy command line interface tool to work with Databend Cloud smoothly and efficiently as with a web browser. Use the tool as an alternative to manage your warehouses and stages, upload files, and run SQL queries.
+bendsql is a handy command line interface tool to work with Databend Cloud smoothly and efficiently as with a web browser. Use the tool as an alternative to manage your warehouses and run SQL queries.
 
 
 ## How to install bendsql
