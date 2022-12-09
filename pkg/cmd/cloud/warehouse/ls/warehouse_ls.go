@@ -34,30 +34,28 @@ func NewCmdWarehouseList(f *cmdutil.Factory) *cobra.Command {
 			$ bendsql warehouse ls
 		`),
 		Run: func(cmd *cobra.Command, args []string) {
-			warehouseList, err := showWarehouseList(f)
+			err := showWarehouseList(f)
 			if err != nil {
 				fmt.Printf("show warehouse list failed, err: %v", err)
 			}
-			fmt.Println(warehouseList)
 		},
 	}
 
 	return cmd
 }
 
-func showWarehouseList(f *cmdutil.Factory) (string, error) {
-	var warehouseListStr string
+func showWarehouseList(f *cmdutil.Factory) error {
 	apiClient, err := api.NewClient()
 	if err != nil {
-		return "", err
+		return err
 	}
 	warehouseList, err := apiClient.ListWarehouses()
 	if err != nil {
-		return "", err
+		return err
 	}
-	for i := range warehouseList {
-		warehouseListStr = warehouseListStr + warehouseList[i].Name + "\n"
+	for _, warehouse := range warehouseList {
+		fmt.Println(warehouse.Description(), warehouse.Name)
 	}
 
-	return warehouseListStr, nil
+	return nil
 }

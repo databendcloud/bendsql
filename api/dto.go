@@ -52,19 +52,21 @@ func (w WarehouseStatusDTO) String() string {
 	return fmt.Sprintf("%s(%s):%s", w.Name, w.Size, w.State)
 }
 
-func (w WarehouseStatusDTO) Description() string {
-	text := fmt.Sprintf("(%s)", w.Size)
+func (w WarehouseStatusDTO) StateEmoji() string {
 	switch w.State {
 	case "Running":
-		text += "🟢 "
+		return "🟢"
 	case "Starting":
-		text += "🟡 "
+		return "🟡"
 	case "Suspended":
-		text += "⚪️ "
+		return "⚪️"
 	default:
-		text += fmt.Sprintf("🔴 %s", w.State)
+		return "🔴"
 	}
-	return text
+}
+
+func (w WarehouseStatusDTO) Description() string {
+	return fmt.Sprintf("%s (%s)", w.StateEmoji(), w.Size)
 }
 
 type OrgMembershipDTO struct {
