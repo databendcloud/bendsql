@@ -18,13 +18,14 @@ import (
 	"fmt"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/databendcloud/bendsql/pkg/cmdutil"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+
+	"github.com/databendcloud/bendsql/api"
+	"github.com/databendcloud/bendsql/pkg/cmdutil"
 )
 
 func NewCmdWarehouseSuspend(f *cmdutil.Factory) *cobra.Command {
-
 	cmd := &cobra.Command{
 		Use:   "suspend [warehouseName]",
 		Short: "Suspend a warehouse",
@@ -35,7 +36,7 @@ func NewCmdWarehouseSuspend(f *cmdutil.Factory) *cobra.Command {
 			$ bendsql warehouse suspend [WAREHOUSENAME]
 		`),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiClient, err := f.ApiClient()
+			apiClient, err := api.NewClient()
 			if err != nil {
 				return errors.Wrap(err, "get api client failed")
 			}

@@ -21,7 +21,7 @@ import (
 	"github.com/avast/retry-go"
 )
 
-func (c *APIClient) ListWarehouses() ([]WarehouseStatusDTO, error) {
+func (c *Client) ListWarehouses() ([]WarehouseStatusDTO, error) {
 	path := fmt.Sprintf("/api/v1/orgs/%s/tenant/warehouses", c.cfg.Org)
 	data := struct {
 		Data []WarehouseStatusDTO `json:"data"`
@@ -33,7 +33,7 @@ func (c *APIClient) ListWarehouses() ([]WarehouseStatusDTO, error) {
 	return data.Data, err
 }
 
-func (c *APIClient) ViewWarehouse(warehouseName string) (*WarehouseStatusDTO, error) {
+func (c *Client) ViewWarehouse(warehouseName string) (*WarehouseStatusDTO, error) {
 	path := fmt.Sprintf("/api/v1/orgs/%s/tenant/warehouses/%s", c.cfg.Org, warehouseName)
 	data := struct {
 		Data WarehouseStatusDTO `json:"data"`
@@ -45,7 +45,7 @@ func (c *APIClient) ViewWarehouse(warehouseName string) (*WarehouseStatusDTO, er
 	return &data.Data, err
 }
 
-func (c *APIClient) ResumeWarehouse(warehouseName string) error {
+func (c *Client) ResumeWarehouse(warehouseName string) error {
 	path := fmt.Sprintf("/api/v1/orgs/%s/tenant/warehouses/%s/resume", c.cfg.Org, warehouseName)
 	err := c.DoRequest("POST", path, nil, nil, nil)
 	if err != nil {
@@ -54,7 +54,7 @@ func (c *APIClient) ResumeWarehouse(warehouseName string) error {
 	return nil
 }
 
-func (c *APIClient) SuspendWarehouse(warehouseName string) error {
+func (c *Client) SuspendWarehouse(warehouseName string) error {
 	path := fmt.Sprintf("/api/v1/orgs/%s/tenant/warehouses/%s/suspend", c.cfg.Org, warehouseName)
 	err := c.DoRequest("POST", path, nil, nil, nil)
 	if err != nil {
@@ -70,7 +70,7 @@ type CreateWarehouseRequestBody struct {
 	Size      string `json:"size,omitempty"`
 }
 
-func (c *APIClient) CreateWarehouse(warehouseName, size string) error {
+func (c *Client) CreateWarehouse(warehouseName, size string) error {
 	req := &CreateWarehouseRequestBody{
 		Name: warehouseName,
 		Size: size,
@@ -83,7 +83,7 @@ func (c *APIClient) CreateWarehouse(warehouseName, size string) error {
 	return nil
 }
 
-func (c *APIClient) DeleteWarehouse(warehouseName string) error {
+func (c *Client) DeleteWarehouse(warehouseName string) error {
 	path := fmt.Sprintf("/api/v1/orgs/%s/tenant/warehouses/%s", c.cfg.Org, warehouseName)
 	err := c.DoRequest("DELETE", path, nil, nil, nil)
 	if err != nil {
@@ -92,7 +92,7 @@ func (c *APIClient) DeleteWarehouse(warehouseName string) error {
 	return nil
 }
 
-func (c *APIClient) CreateWarehouseAndWaitRunning(warehouseName, size string) error {
+func (c *Client) CreateWarehouseAndWaitRunning(warehouseName, size string) error {
 	err := c.CreateWarehouse(warehouseName, size)
 	if err != nil {
 		return err

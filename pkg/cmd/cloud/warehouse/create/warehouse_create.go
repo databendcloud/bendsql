@@ -18,8 +18,10 @@ import (
 	"fmt"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/databendcloud/bendsql/pkg/cmdutil"
 	"github.com/spf13/cobra"
+
+	"github.com/databendcloud/bendsql/api"
+	"github.com/databendcloud/bendsql/pkg/cmdutil"
 )
 
 func NewCmdWarehouseCreate(f *cmdutil.Factory) *cobra.Command {
@@ -57,7 +59,7 @@ func NewCmdWarehouseCreate(f *cmdutil.Factory) *cobra.Command {
 
 func createWarehouse(f *cmdutil.Factory, warehouseName, size string) error {
 	fmt.Printf("warehouse %s is creating, please wait...\n", warehouseName)
-	apiClient, err := f.ApiClient()
+	apiClient, err := api.NewClient()
 	if err != nil {
 		return err
 	}

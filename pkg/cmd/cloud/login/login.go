@@ -73,7 +73,7 @@ func NewCmdLogin(f *cmdutil.Factory) *cobra.Command {
 }
 
 func loginRun(opts *LoginOptions) error {
-	apiClient, err := api.NewApiClient()
+	apiClient, err := api.NewClient()
 	if err != nil {
 		return errors.Wrap(err, "could not create api client")
 	}

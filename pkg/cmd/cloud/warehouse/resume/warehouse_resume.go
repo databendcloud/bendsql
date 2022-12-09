@@ -18,13 +18,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/MakeNowJust/heredoc"
 	"github.com/avast/retry-go"
 	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
 
-	"github.com/MakeNowJust/heredoc"
 	"github.com/databendcloud/bendsql/api"
 	"github.com/databendcloud/bendsql/pkg/cmdutil"
-	"github.com/spf13/cobra"
 )
 
 func NewCmdWarehouseResume(f *cmdutil.Factory) *cobra.Command {
@@ -42,7 +42,7 @@ func NewCmdWarehouseResume(f *cmdutil.Factory) *cobra.Command {
 			$ bendsql warehouse resume WAREHOUSENAME
 		`),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiClient, err := f.ApiClient()
+			apiClient, err := api.NewClient()
 			if err != nil {
 				return errors.Wrap(err, "get api client failed")
 			}
@@ -66,7 +66,7 @@ func NewCmdWarehouseResume(f *cmdutil.Factory) *cobra.Command {
 	return cmd
 }
 
-func resumeWarehouse(apiClient *api.APIClient, warehouseName string, wait bool) error {
+func resumeWarehouse(apiClient *api.Client, warehouseName string, wait bool) error {
 	err := apiClient.ResumeWarehouse(warehouseName)
 	if err != nil {
 		return errors.Wrap(err, "resume warehouse failed")

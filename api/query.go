@@ -24,7 +24,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (c *APIClient) Query(warehouseName, query string) (*QueryResponse, error) {
+func (c *Client) Query(warehouseName, query string) (*QueryResponse, error) {
 	headers := make(http.Header)
 	headers.Set("X-DATABENDCLOUD-WAREHOUSE", warehouseName)
 	headers.Set("X-DATABENDCLOUD-ORG", string(c.cfg.Org))
@@ -43,7 +43,7 @@ func (c *APIClient) Query(warehouseName, query string) (*QueryResponse, error) {
 	return &result, nil
 }
 
-func (c *APIClient) QuerySync(warehouseName string, sql string, respCh chan QueryResponse) error {
+func (c *Client) QuerySync(warehouseName string, sql string, respCh chan QueryResponse) error {
 	var r0 *QueryResponse
 	err := retry.Do(
 		func() error {
@@ -89,7 +89,7 @@ func (c *APIClient) QuerySync(warehouseName string, sql string, respCh chan Quer
 	return nil
 }
 
-func (c *APIClient) QueryPage(warehouseName, queryId, path string) (*QueryResponse, error) {
+func (c *Client) QueryPage(warehouseName, queryId, path string) (*QueryResponse, error) {
 	headers := make(http.Header)
 	headers.Set("queryID", queryId)
 	headers.Set("X-DATABENDCLOUD-WAREHOUSE", warehouseName)

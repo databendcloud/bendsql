@@ -18,8 +18,10 @@ import (
 	"fmt"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/databendcloud/bendsql/pkg/cmdutil"
 	"github.com/spf13/cobra"
+
+	"github.com/databendcloud/bendsql/api"
+	"github.com/databendcloud/bendsql/pkg/cmdutil"
 )
 
 func NewCmdWarehouseDelete(f *cmdutil.Factory) *cobra.Command {
@@ -53,7 +55,7 @@ func NewCmdWarehouseDelete(f *cmdutil.Factory) *cobra.Command {
 }
 
 func deleteWarehouse(f *cmdutil.Factory, warehouseName string) error {
-	apiClient, err := f.ApiClient()
+	apiClient, err := api.NewClient()
 	if err != nil {
 		return err
 	}

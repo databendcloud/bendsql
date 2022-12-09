@@ -47,7 +47,7 @@ func NewCmdConfigure(f *cmdutil.Factory) *cobra.Command {
 			$ bendsql cloud configure
 		`),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiClient, err := api.NewApiClient()
+			apiClient, err := api.NewClient()
 			if err != nil {
 				return errors.Wrap(err, "new api client failed")
 			}

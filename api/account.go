@@ -26,7 +26,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (c *APIClient) GetCurrentAccountInfo() (*AccountInfoDTO, error) {
+func (c *Client) GetCurrentAccountInfo() (*AccountInfoDTO, error) {
 	resp := struct {
 		Data AccountInfoDTO `json:"data"`
 	}{}
@@ -37,7 +37,7 @@ func (c *APIClient) GetCurrentAccountInfo() (*AccountInfoDTO, error) {
 	return &resp.Data, nil
 }
 
-func (c *APIClient) ListOrgs() ([]OrgMembershipDTO, error) {
+func (c *Client) ListOrgs() ([]OrgMembershipDTO, error) {
 	var orgs []OrgMembershipDTO
 	resp := struct {
 		Data []OrgMembershipDTO `json:"data"`
@@ -53,7 +53,7 @@ func (c *APIClient) ListOrgs() ([]OrgMembershipDTO, error) {
 	return orgs, nil
 }
 
-func (c *APIClient) UploadToStageByPresignURL(presignURL, fileName string, header map[string]interface{}, displayProgress bool) error {
+func (c *Client) UploadToStageByPresignURL(presignURL, fileName string, header map[string]interface{}, displayProgress bool) error {
 	fileContent, err := os.ReadFile(fileName)
 	if err != nil {
 		return err

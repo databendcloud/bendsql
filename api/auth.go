@@ -24,7 +24,7 @@ import (
 	"github.com/databendcloud/bendsql/internal/config"
 )
 
-func (c *APIClient) DoAuthRequest(method, path string, headers http.Header, req interface{}, resp interface{}) error {
+func (c *Client) DoAuthRequest(method, path string, headers http.Header, req interface{}, resp interface{}) error {
 	if headers != nil {
 		headers = headers.Clone()
 	} else {
@@ -33,7 +33,7 @@ func (c *APIClient) DoAuthRequest(method, path string, headers http.Header, req 
 	return c.request(method, path, headers, req, resp)
 }
 
-func (c *APIClient) Login(email, password string) error {
+func (c *Client) Login(email, password string) error {
 	req := struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -68,7 +68,7 @@ func (c *APIClient) Login(email, password string) error {
 	return nil
 }
 
-func (c *APIClient) RefreshToken() error {
+func (c *Client) RefreshToken() error {
 	req := struct {
 		RefreshToken string `json:"refreshToken"`
 	}{
