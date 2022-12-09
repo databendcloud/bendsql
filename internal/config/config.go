@@ -25,7 +25,8 @@ import (
 )
 
 const (
-	configFileEnv = "BENDSQL_CONFIG"
+	TARGET_LOCAL = "local"
+	TARGET_CLOUD = "cloud"
 )
 
 var (
@@ -33,7 +34,7 @@ var (
 )
 
 func init() {
-	if a := os.Getenv(configFileEnv); a != "" {
+	if a := os.Getenv("BENDSQL_CONFIG"); a != "" {
 		configFile = a
 	} else {
 		d, err := os.UserHomeDir()

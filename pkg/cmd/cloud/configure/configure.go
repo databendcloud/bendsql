@@ -78,11 +78,9 @@ func NewCmdConfigure(f *cmdutil.Factory) *cobra.Command {
 					return errors.Wrap(err, "ask for warehouse failed")
 				}
 			}
-			for _, warehouse := range warehouseDtos {
-				if warehouse.Name == opts.Warehouse {
-					apiClient.SetCurrentWarehouse(warehouse.Name)
-					break
-				}
+			err = apiClient.SetCurrentWarehouse(opts.Warehouse)
+			if err != nil {
+				return errors.Wrap(err, "set current warehouse failed")
 			}
 
 			err = apiClient.WriteConfig()

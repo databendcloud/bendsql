@@ -30,7 +30,7 @@ import (
 )
 
 type APIClient struct {
-	cfg *config.Config
+	cfg *config.CloudConfig
 }
 
 const (
@@ -51,17 +51,31 @@ func NewApiClient() (*APIClient, error) {
 		return nil, errors.Wrap(err, "failed to get config")
 	}
 	client := &APIClient{
-		cfg: cfg,
+		cfg: cfg.Cloud,
 	}
 	return client, nil
 }
 
 func (c *APIClient) WriteConfig() error {
-	return config.WriteConfig(c.cfg)
+	cfg, err := config.GetConfig()
+	if err != nil {
+		return errors.Wrap(err, "failed to get config")
+	}
+	cfg.Target = config.TARGET_CLOUD
+	cfg.Cloud = c.cfg
+	return config.WriteConfig(cfg)
 }
 
 func (c *APIClient) CurrentWarehouse() string {
 	return c.cfg.Warehouse
+}
+
+func (c *APIClient) CurrentOrganization() string {
+	return c.cfg.Org
+}
+
+func (c *APIClient) CurrentEndpoint() string {
+	return c.cfg.Endpoint
 }
 
 func (c *APIClient) SetCurrentWarehouse(warehouse string) error {
@@ -69,10 +83,17 @@ func (c *APIClient) SetCurrentWarehouse(warehouse string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to list warehouses")
 	}
+	if len(warehouseList) == 0 {
+		return errors.New("no warehouse found")
+	}
+	if warehouse == "" {
+		c.cfg.Warehouse = warehouseList[0].Name
+		return nil
+	}
 	for i := range warehouseList {
 		if warehouse == warehouseList[i].Name {
 			c.cfg.Warehouse = warehouse
-			return c.WriteConfig()
+			return nil
 		}
 	}
 	return errors.Errorf("warehouse %s not found", warehouse)

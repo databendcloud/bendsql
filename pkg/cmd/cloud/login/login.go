@@ -20,41 +20,24 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/MakeNowJust/heredoc"
-	"github.com/databendcloud/bendsql/api"
-	"github.com/databendcloud/bendsql/internal/config"
-	"github.com/databendcloud/bendsql/pkg/cmdutil"
-	"github.com/databendcloud/bendsql/pkg/iostreams"
-	"github.com/databendcloud/bendsql/pkg/prompt"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-)
 
-type LoginType int
-
-const (
-	UserPasswordLogin LoginType = 0
-	AccessTokenLogin  LoginType = 1
+	"github.com/databendcloud/bendsql/api"
+	"github.com/databendcloud/bendsql/pkg/cmdutil"
+	"github.com/databendcloud/bendsql/pkg/prompt"
 )
 
 type LoginOptions struct {
-	IO             *iostreams.IOStreams
-	ApiClient      func() (*api.APIClient, error)
-	Interactive    bool
-	MainExecutable string
-	Config         config.Config
-	Email          string
-	Password       string
-	Org            string
-	Endpoint       string
+	Email    string
+	Password string
+	Org      string
+	Endpoint string
 }
 
 func NewCmdLogin(f *cmdutil.Factory) *cobra.Command {
-	opts := &LoginOptions{
-		IO:        f.IOStreams,
-		ApiClient: f.ApiClient,
-	}
-
+	opts := &LoginOptions{}
 	cmd := &cobra.Command{
 		Use:   "login",
 		Args:  cobra.ExactArgs(0),
@@ -78,10 +61,6 @@ func NewCmdLogin(f *cmdutil.Factory) *cobra.Command {
 			"IsCore": "true",
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if opts.IO.CanPrompt() && (opts.Email == "" || opts.Password == "") {
-				// default use interactive tty
-				opts.Interactive = true
-			}
 			return loginRun(opts)
 		},
 	}
@@ -94,8 +73,7 @@ func NewCmdLogin(f *cmdutil.Factory) *cobra.Command {
 }
 
 func loginRun(opts *LoginOptions) error {
-	cfg := opts.Config
-	apiClient, err := opts.ApiClient()
+	apiClient, err := api.NewApiClient()
 	if err != nil {
 		return errors.Wrap(err, "could not create api client")
 	}
@@ -157,7 +135,6 @@ func loginRun(opts *LoginOptions) error {
 	}
 
 	var currentOrg *api.OrgMembershipDTO
-
 	switch len(orgDtos) {
 	case 0:
 		return fmt.Errorf("no orgs found, please create one first")
@@ -195,21 +172,13 @@ func loginRun(opts *LoginOptions) error {
 	}
 
 	apiClient.SetCurrentOrg(currentOrg.OrgSlug, currentOrg.OrgTenantID, currentOrg.Gateway)
-
-	warehouses, err := apiClient.ListWarehouses()
-	if err != nil || len(warehouses) == 0 {
-		logrus.Warnf("you have no warehouse in %s", cfg.Org)
-	} else {
-		logrus.Infof("setting current warehouse to %s", warehouses[0].Name)
-		logrus.Info("run `bendsql cloud configure` to change")
-		cfg.Warehouse = warehouses[0].Name
-	}
-
 	err = apiClient.WriteConfig()
 	if err != nil {
 		return errors.Wrap(err, "could not write config")
 	}
 
-	logrus.Infof("logged in %s of Databend Cloud %s successfully.", cfg.Org, cfg.Endpoint)
+	logrus.Infof("logged in %s of Databend Cloud %s successfully.",
+		apiClient.CurrentOrganization(), apiClient.CurrentEndpoint())
+	logrus.Infoln("you can use `bendsql cloud configure` to switch to another org and warehouse")
 	return nil
 }

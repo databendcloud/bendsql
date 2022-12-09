@@ -19,18 +19,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/databendcloud/bendsql/api"
-
 	"github.com/databendcloud/bendsql/pkg/iostreams"
 )
 
 type Factory struct {
 	IOStreams      *iostreams.IOStreams
-	ApiClient      func() (*api.APIClient, error)
 	ExecutableName string
 }
 
-func NewFactory(appVersion string) *Factory {
+func NewFactory() *Factory {
 	f := &Factory{
 		ExecutableName: "bendsql",
 		IOStreams:      iostreams.System(),

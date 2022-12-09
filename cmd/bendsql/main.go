@@ -29,7 +29,6 @@ import (
 	surveyCore "github.com/AlecAivazis/survey/v2/core"
 	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/databendcloud/bendsql/internal/build"
-	"github.com/databendcloud/bendsql/pkg/cmd/factory"
 	"github.com/databendcloud/bendsql/pkg/cmd/root"
 	"github.com/databendcloud/bendsql/pkg/cmdutil"
 	"github.com/databendcloud/bendsql/pkg/iostreams"
@@ -54,7 +53,7 @@ func mainRun() exitCode {
 	buildDate := build.Date
 	buildVersion := build.Version
 
-	cmdFactory := factory.New(buildVersion)
+	cmdFactory := cmdutil.NewFactory()
 	stderr := cmdFactory.IOStreams.ErrOut
 	hasDebug := utils.IsDebugEnabled()
 
