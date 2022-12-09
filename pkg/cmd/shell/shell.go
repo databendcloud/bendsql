@@ -26,6 +26,7 @@ import (
 	"github.com/xo/usql/handler"
 	"github.com/xo/usql/rline"
 
+	"github.com/databendcloud/bendsql/api"
 	"github.com/databendcloud/bendsql/pkg/cmdutil"
 )
 
@@ -38,7 +39,7 @@ func NewCmdShell(f *cmdutil.Factory) *cobra.Command {
 			"IsCore": "true",
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiClient, err := f.ApiClient()
+			apiClient, err := api.NewClient()
 			if err != nil {
 				return errors.Wrap(err, "failed to create api client")
 			}

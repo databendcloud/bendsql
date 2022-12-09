@@ -34,7 +34,6 @@ import (
 
 type querySQLOptions struct {
 	IO        *iostreams.IOStreams
-	ApiClient func() (*api.APIClient, error)
 	Warehouse string
 	QuerySQL  string
 	Verbose   bool
@@ -42,8 +41,7 @@ type querySQLOptions struct {
 
 func NewCmdQuerySQL(f *cmdutil.Factory) *cobra.Command {
 	opts := &querySQLOptions{
-		IO:        f.IOStreams,
-		ApiClient: f.ApiClient,
+		IO: f.IOStreams,
 	}
 	var sqlStdin bool
 
@@ -80,7 +78,7 @@ func NewCmdQuerySQL(f *cmdutil.Factory) *cobra.Command {
 				opts.QuerySQL = strings.TrimSpace(string(sql))
 			}
 
-			apiClient, err := opts.ApiClient()
+			apiClient, err := api.NewClient()
 			if err != nil {
 				return errors.Wrap(err, "failed to get api client")
 			}
