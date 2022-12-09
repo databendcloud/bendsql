@@ -60,12 +60,12 @@ func init() {
 }
 
 type Config struct {
-	Target string       `toml:"target"`
-	Cloud  *CloudConfig `toml:"cloud,omitempty"`
-	Local  *LocalConfig `toml:"local,omitempty"`
+	Target    string           `toml:"target"`
+	Cloud     *CloudConfig     `toml:"cloud,omitempty"`
+	Community *CommunityConfig `toml:"community,omitempty"`
 }
 
-type LocalConfig struct {
+type CommunityConfig struct {
 	Host     string `toml:"host"`
 	Port     int    `toml:"port"`
 	Username string `toml:"username"`
