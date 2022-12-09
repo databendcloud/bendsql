@@ -19,7 +19,6 @@ import (
 
 	configureCmd "github.com/databendcloud/bendsql/pkg/cmd/cloud/configure"
 	loginCmd "github.com/databendcloud/bendsql/pkg/cmd/cloud/login"
-	stageCmd "github.com/databendcloud/bendsql/pkg/cmd/cloud/stage"
 	warehouseCmd "github.com/databendcloud/bendsql/pkg/cmd/cloud/warehouse"
 	"github.com/databendcloud/bendsql/pkg/cmdutil"
 )
@@ -41,7 +40,6 @@ func NewCloudCmd(f *cmdutil.Factory) *cobra.Command {
 	cloudCmd.AddCommand(configureCmd.NewCmdConfigure(f))
 	cloudCmd.AddCommand(loginCmd.NewCmdLogin(f))
 	cloudCmd.AddCommand(warehouseCmd.NewWarehouseCmd(f))
-	cloudCmd.AddCommand(stageCmd.NewStageCmd(f))
 
 	return cloudCmd
 }
