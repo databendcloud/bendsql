@@ -25,8 +25,8 @@ import (
 )
 
 const (
-	TARGET_LOCAL = "local"
-	TARGET_CLOUD = "cloud"
+	TARGET_COMMUNITY = "community"
+	TARGET_CLOUD     = "cloud"
 )
 
 var (
