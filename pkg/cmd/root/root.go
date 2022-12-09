@@ -39,7 +39,6 @@ func NewCmdRoot(f *cmdutil.Factory, version, buildDate string) *cobra.Command {
 		Example: heredoc.Doc(`
 			$ bendsql cloud login
 			$ bendsql cloud warehouse ls
-			$ bendsql cloud stage ls
 			$ bendsql shell
 			$ bendsql query`),
 		Annotations: map[string]string{
