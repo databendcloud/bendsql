@@ -18,9 +18,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/BurntSushi/toml"
+	dc "github.com/databendcloud/databend-go"
 	"github.com/pkg/errors"
 )
 
@@ -65,15 +67,47 @@ type Config struct {
 	Community *CommunityConfig `toml:"community,omitempty"`
 }
 
+func (c *Config) GetDSN() (string, error) {
+	switch c.Target {
+	case TARGET_COMMUNITY:
+		if c.Community == nil {
+			return "", errors.New("please use `bendsql connect` to connect to your instance first")
+		}
+		return c.Community.GetDSN()
+	case TARGET_CLOUD:
+		if c.Cloud == nil {
+			return "", errors.New("please use `bendsql cloud login` to connect to your account first")
+		}
+		return c.Cloud.GetDSN()
+	default:
+		return "", errors.New("please use `bendsql connect` or `bendsql cloud login` to connect to your instance first")
+	}
+}
+
 type CommunityConfig struct {
 	Host     string `toml:"host"`
 	Port     int    `toml:"port"`
-	Username string `toml:"username"`
+	User     string `toml:"user"`
 	Password string `toml:"password"`
 	Database string `toml:"database"`
-	SSLMode  string `toml:"sslmode"`
+	SSL      bool   `toml:"ssl"`
 
 	Options map[string]string `toml:"options"`
+}
+
+func (c *CommunityConfig) GetDSN() (string, error) {
+	cfg := dc.NewConfig()
+	cfg.Host = fmt.Sprintf("%s:%d", c.Host, c.Port)
+	cfg.User = c.User
+	cfg.Password = c.Password
+	cfg.Database = c.Database
+	if !c.SSL {
+		cfg.SSLMode = dc.SSL_MODE_DISABLE
+	}
+	cfg.AddParams(c.Options)
+
+	dsn := cfg.FormatDSN()
+	return dsn, nil
 }
 
 type CloudConfig struct {
@@ -84,6 +118,27 @@ type CloudConfig struct {
 	Endpoint  string `toml:"endpoint"`
 
 	Token *Token `toml:"token,omitempty"`
+}
+
+func (c *CloudConfig) GetDSN() (string, error) {
+	if c.Token == nil {
+		return "", errors.New("please use `bendsql cloud login` to login your account first")
+	}
+	if c.Gateway == "" || c.Tenant == "" || c.Warehouse == "" {
+		return "", errors.New("please use `bendsql cloud configure` to select organization and warehouse first")
+	}
+
+	cfg := dc.NewConfig()
+	if strings.HasPrefix(c.Endpoint, "http://") {
+		cfg.SSLMode = dc.SSL_MODE_DISABLE
+	}
+	cfg.Host = c.Gateway
+	cfg.Tenant = c.Tenant
+	cfg.Warehouse = c.Warehouse
+	cfg.AccessToken = c.Token.AccessToken
+
+	dsn := cfg.FormatDSN()
+	return dsn, nil
 }
 
 type Token struct {

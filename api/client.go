@@ -211,7 +211,7 @@ func (c *Client) GetCloudDSN() (dsn string, err error) {
 
 	cfg := dc.NewConfig()
 	if strings.HasPrefix(c.cfg.Endpoint, "http://") {
-		cfg.SSLMode = "disable"
+		cfg.SSLMode = dc.SSL_MODE_DISABLE
 	}
 	cfg.Host = c.cfg.Gateway
 	cfg.Tenant = c.cfg.Tenant

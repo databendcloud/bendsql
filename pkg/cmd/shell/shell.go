@@ -26,7 +26,7 @@ import (
 	"github.com/xo/usql/handler"
 	"github.com/xo/usql/rline"
 
-	"github.com/databendcloud/bendsql/api"
+	"github.com/databendcloud/bendsql/internal/config"
 	"github.com/databendcloud/bendsql/pkg/cmdutil"
 )
 
@@ -39,13 +39,13 @@ func NewCmdShell(f *cmdutil.Factory) *cobra.Command {
 			"IsCore": "true",
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			apiClient, err := api.NewClient()
+			cfg, err := config.GetConfig()
 			if err != nil {
-				return errors.Wrap(err, "failed to create api client")
+				return err
 			}
-			dsn, err := apiClient.GetCloudDSN()
+			dsn, err := cfg.GetDSN()
 			if err != nil {
-				return errors.Wrap(err, "failed to get cloud dsn")
+				return errors.Wrap(err, "failed to get dsn")
 			}
 
 			// register databend driver

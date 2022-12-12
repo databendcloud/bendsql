@@ -27,16 +27,15 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	"github.com/databendcloud/bendsql/api"
+	"github.com/databendcloud/bendsql/internal/config"
 	"github.com/databendcloud/bendsql/pkg/cmdutil"
 	"github.com/databendcloud/bendsql/pkg/iostreams"
 )
 
 type querySQLOptions struct {
-	IO        *iostreams.IOStreams
-	Warehouse string
-	QuerySQL  string
-	Verbose   bool
+	IO       *iostreams.IOStreams
+	QuerySQL string
+	Verbose  bool
 }
 
 func NewCmdQuerySQL(f *cmdutil.Factory) *cobra.Command {
@@ -52,7 +51,7 @@ func NewCmdQuerySQL(f *cmdutil.Factory) *cobra.Command {
 		Example: heredoc.Doc(`
 			# exec SQL using warehouse
 			# use sql
-			$ bendsql query "YOURSQL" --warehouse [WAREHOUSENAME] [--verbose]
+			$ bendsql query "YOURSQL" [--verbose]
 
 			# use stdin
 			$ echo "select * from YOURTABLE limit 10" | bendsql query
@@ -78,21 +77,14 @@ func NewCmdQuerySQL(f *cmdutil.Factory) *cobra.Command {
 				opts.QuerySQL = strings.TrimSpace(string(sql))
 			}
 
-			apiClient, err := api.NewClient()
+			cfg, err := config.GetConfig()
 			if err != nil {
-				return errors.Wrap(err, "failed to get api client")
+				return errors.Wrap(err, "failed to get config")
 			}
 
-			if opts.Warehouse == "" {
-				opts.Warehouse = apiClient.CurrentWarehouse()
-			}
-			if opts.Warehouse == "" {
-				return errors.Wrap(err, "warehouse not selected")
-			}
-
-			dsn, err := apiClient.GetCloudDSN()
+			dsn, err := cfg.GetDSN()
 			if err != nil {
-				return errors.Wrap(err, "failed to get cloud dsn")
+				return errors.Wrap(err, "failed to get dsn")
 			}
 
 			err = execQueryByDriver(opts, dsn)
@@ -104,7 +96,6 @@ func NewCmdQuerySQL(f *cmdutil.Factory) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&opts.Warehouse, "warehouse", "", "warehouse")
 	cmd.Flags().BoolVar(&opts.Verbose, "verbose", false, "display progress info across paginated results")
 
 	return cmd
