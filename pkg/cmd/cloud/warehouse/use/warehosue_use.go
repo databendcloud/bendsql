@@ -45,8 +45,12 @@ func NewCmdWarehouseUse(f *cmdutil.Factory) *cobra.Command {
 			if err != nil {
 				return errors.Wrapf(err, "set working warehouse %s failed", warehouse)
 			}
+			err = apiClient.WriteConfig()
+			if err != nil {
+				return errors.Wrap(err, "write config failed")
+			}
 
-			fmt.Printf("Now using warehouse %s", warehouse)
+			fmt.Printf("Now using warehouse <%s>\n", warehouse)
 			return nil
 		},
 	}

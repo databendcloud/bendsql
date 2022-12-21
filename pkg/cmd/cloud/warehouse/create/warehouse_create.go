@@ -46,10 +46,10 @@ func NewCmdWarehouseCreate(f *cmdutil.Factory) *cobra.Command {
 			}
 			err := createWarehouse(f, args[0], size)
 			if err != nil {
-				fmt.Printf("create warehouse %s failed, err: %v", args[0], err)
+				fmt.Printf("create warehouse %s failed, err: %v\n", args[0], err)
 				return
 			}
-			fmt.Printf("warehouse %s created, size is %s", args[0], size)
+			fmt.Printf("warehouse %s created, size is %s\n", args[0], size)
 		},
 	}
 	cmd.Flags().StringVar(&size, "size", "Small", "Warehouse size")
