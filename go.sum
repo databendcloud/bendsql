@@ -96,8 +96,8 @@ github.com/couchbase/goutils v0.1.2 h1:gWr8B6XNWPIhfalHNog3qQKfGiYyh4K4VhO3P2o9B
 github.com/cpuguy83/go-md2man/v2 v2.0.2/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/creack/pty v1.1.17/go.mod h1:MOBLtS5ELjhRRrroQr9kyvTxUAFNvYEK993ew/Vr4O4=
 github.com/creack/pty v1.1.18 h1:n56/Zwd5o6whRC5PMGretI4IdRLlmBXYNjScPaBgsbY=
-github.com/databendcloud/databend-go v0.1.8 h1:K5sEhLi3nayYSfTMVlGYimnYDTbD6Vdx9+5AOdtNTx8=
-github.com/databendcloud/databend-go v0.1.8/go.mod h1:xtE04GstfCRnV3jW8dxHR9VW8QxXvQvRApVonFEHy50=
+github.com/databendcloud/databend-go v0.2.2 h1:+oc82nbrsGNLWGGdylbrIULGMqFeVg4sRL2aPEN4Mts=
+github.com/databendcloud/databend-go v0.2.2/go.mod h1:xtE04GstfCRnV3jW8dxHR9VW8QxXvQvRApVonFEHy50=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
